@@ -89,7 +89,7 @@ class LRCN(nn.Module):
         self.base_model = base_cnn
 
         # Define the LSTM to process the sequence of frame features.
-        self.rnn = nn.LSTM(num_features, hidden_size, n_layers)
+        self.rnn = nn.LSTM(num_features, hidden_size, n_layers, batch_first=True)
         
         # Define dropout for regularization.
         self.dropout = nn.Dropout(dropout_rate)
@@ -115,17 +115,27 @@ class LRCN(nn.Module):
             Tensor: Output logits for each sample in the batch with shape (batch_size, n_classes).
         """
         bs, ts, c, h, w = x.shape  # batch_size, time_steps, channels, height, width
-        
+        print(f"\n{'='*50}")
+        print(f"Input shape: (bs={bs}, ts={ts}, c={c}, h={h}, w={w})")
+
         # Process the first frame separately to initialize the LSTM hidden and cell states.
         idx = 0
         y = self.base_model(x[:, idx])
+        print(f"CNN output shape: {y.shape}")
+        print(f"LSTM input shape: {y.unsqueeze(1).shape}")
+        print(f"LSTM expects (batch_first={self.rnn.batch_first}):")
         _, (hn, cn) = self.rnn(y.unsqueeze(1))
-        
+        print(f"Hidden state shape: {hn.shape}")
+
         # Iterate over the remaining frames, feeding each frame's features into the LSTM.
         for idx in range(1, ts):
             y = self.base_model(x[:, idx])
             out, (hn, cn) = self.rnn(y.unsqueeze(1), (hn, cn))
         
+        print(f"LSTM output shape: {out.shape}")
+        print(f"Final output (out[:, -1]) shape: {out[:, -1].shape}")
+        print(f"{'='*50}\n")
+
         # Apply dropout to the output of the final time step.
         out = self.dropout(out[:, -1])
         

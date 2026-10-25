@@ -130,8 +130,11 @@ def main(args):
     batch_size = args.batch_size
     n_epochs = args.n_epochs
     learning_rate = args.learning_rate
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available()
+                    else 'mps' if torch.backends.mps.is_available()
+                    else 'cpu')
+    print(f"Using device: {device}")
     # Load transformation statistics and create data augmentation transforms
     h, w, mean, std = transform_stats(model_type)
     tr_transforms, val_ts_transforms = compose_data_transforms(h, w, mean, std)
@@ -159,7 +162,7 @@ def main(args):
         # Define the loss function, optimizer, and learning rate scheduler
         loss_func = nn.CrossEntropyLoss(reduction='sum')
         opt = optim.Adam(model.parameters(), lr=learning_rate)
-        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, verbose=1)
+        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
         os.makedirs("./models", exist_ok=True)
         optim_model_dir = './models'
 

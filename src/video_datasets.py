@@ -19,6 +19,7 @@ import os
 import glob
 from tqdm import tqdm
 import numpy as np
+import re
 from sklearn.model_selection import StratifiedShuffleSplit
 
 
@@ -91,18 +92,92 @@ def load_dataset(frame_dir):
             - vid_dataset (dict): Dictionary mapping video directory paths to integer labels.
             - label_dict (dict): Dictionary mapping video category names to integer labels.
     """
-    label_dict = {vid_cat: idx for idx, vid_cat in enumerate(sorted(os.listdir(frame_dir)))}
+    #label_dict = {vid_cat: idx for idx, vid_cat in enumerate(sorted(os.listdir(frame_dir)))}
+    label_dict = {vid_cat: idx for idx, vid_cat in enumerate(
+        sorted(d for d in os.listdir(frame_dir) if os.path.isdir(os.path.join(frame_dir, d)))
+    )}
     vid_dataset = {}
     print('Loading video dataset....')
-    for vid_cat in tqdm(sorted(os.listdir(frame_dir))):
+    for vid_cat in tqdm(sorted(d for d in os.listdir(frame_dir) if os.path.isdir(os.path.join(frame_dir, d)))):
         vid_cat_path = os.path.join(frame_dir, vid_cat)
         for vid in os.listdir(vid_cat_path):
             vid_path = os.path.join(vid_cat_path, vid)
+            if not os.path.isdir(vid_path):
+                continue
             vid_dataset[vid_path] = label_dict[vid_cat]
     return vid_dataset, label_dict
 
+import re
 
 def dataset_split(vid_dataset, tr_ratio, ts_ratio, seed=0):
+    """
+    Split the dataset into training, validation, and test sets by GROUP NUMBER
+    to prevent data leakage. All clips from the same group stay in the same split.
+    
+    Groups are extracted from filenames like: v_BaseballPitch_g01_c01
+    
+    Args:
+        vid_dataset (dict): Dictionary mapping video paths to labels.
+        tr_ratio (float): Proportion of the data to use for training.
+        ts_ratio (float): Proportion of the data to use for testing.
+        seed (int, optional): Random seed for reproducibility. Default is 0.
+    
+    Returns:
+        tuple: (tr_dataset, val_dataset, ts_dataset)
+    """
+    print('Splitting train/validation/test datasets (group-aware)....')
+    
+    np.random.seed(seed)
+    
+    # Extract group number from each video path
+    # e.g., ".../v_BaseballPitch_g01_c01" -> group 1
+    def get_group(vid_path):
+        match = re.search(r'_g(\d+)_', os.path.basename(vid_path))
+        if match:
+            return int(match.group(1))
+        raise ValueError(f"Could not extract group from: {vid_path}")
+    
+    # Get unique group numbers
+    all_groups = sorted(set(get_group(p) for p in vid_dataset.keys()))
+    n_groups = len(all_groups)
+    
+    # Shuffle groups
+    shuffled_groups = np.array(all_groups)
+    np.random.shuffle(shuffled_groups)
+    
+    # Split groups into train/val/test
+    val_ratio = 1 - tr_ratio - ts_ratio
+    n_test = max(1, int(n_groups * ts_ratio))
+    n_val = max(1, int(n_groups * val_ratio))
+    n_train = n_groups - n_test - n_val
+    
+    train_groups = set(shuffled_groups[:n_train])
+    val_groups = set(shuffled_groups[n_train:n_train + n_val])
+    test_groups = set(shuffled_groups[n_train + n_val:])
+    
+    print(f"  Train groups: {sorted(int(g) for g in train_groups)}")
+    print(f"  Val groups:   {sorted(int(g) for g in val_groups)}")
+    print(f"  Test groups:  {sorted(int(g) for g in test_groups)}")
+    
+    # Assign videos to splits based on their group
+    tr_dataset = []
+    val_dataset = []
+    ts_dataset = []
+    
+    for vid_path, label in vid_dataset.items():
+        group = get_group(vid_path)
+        if group in train_groups:
+            tr_dataset.append((vid_path, label))
+        elif group in val_groups:
+            val_dataset.append((vid_path, label))
+        else:
+            ts_dataset.append((vid_path, label))
+    
+    print(f"  Train: {len(tr_dataset)}, Val: {len(val_dataset)}, Test: {len(ts_dataset)}")
+    
+    return tr_dataset, val_dataset, ts_dataset
+
+def dataset_split_orig(vid_dataset, tr_ratio, ts_ratio, seed=0):
     """
     Split the dataset into training, validation, and test sets using stratified sampling.
     
