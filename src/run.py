@@ -86,6 +86,7 @@ def args_parser():
     parser.add_argument('-d', '--dropout', type=float, default=0.1, help='Dropout rate for regularization')
     parser.add_argument('-lr', '--learning_rate', type=float, default=3e-5, help='Learning rate for model training')
     parser.add_argument('-ne', '--n_epochs', type=int, default=30, help='Number of training epochs')
+    parser.add_argument('-od', '--output_dir', default='./outputs', help='Directory for outputs (models, logs, splits)')
 
     args = parser.parse_args()
     return args
@@ -113,9 +114,12 @@ def main(args):
         args (argparse.Namespace): Parsed command-line arguments.
     """
     # Dataset parameters
-    setup_logger()
+    output_dir = args.output_dir
+    os.makedirs(output_dir, exist_ok=True)
+
+    setup_logger(log_dir=os.path.join(output_dir, "logs"))
     log_args(args)
-    wandb_run = init_wandb(args)
+    init_wandb(args)
 
     frame_dir = args.frame_dir
     tr_size = args.train_size
@@ -159,7 +163,7 @@ def main(args):
         splits = {'train': np.array(tr_split),
                   'val': np.array(val_split),
                   'test': np.array(ts_split)}
-        np.save('./splits.npy', splits)
+        np.save(os.path.join(output_dir, 'splits.npy'), splits)
 
         # Create PyTorch Datasets and DataLoaders for train and validation
         tr_dataset = VideoDataset(tr_split, fr_per_vid, tr_transforms)
@@ -170,11 +174,16 @@ def main(args):
         loss_func = nn.CrossEntropyLoss(reduction='sum')
         opt = optim.Adam(model.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
-        os.makedirs("./models", exist_ok=True)
-        optim_model_dir = './models'
+        optim_model_dir = os.path.join(output_dir, "models")
+        os.makedirs(optim_model_dir, exist_ok=True)
 
         # Main training procedure
         model.to(device)
+        # Resume from checkpoint if provided
+        if args.ckpt and os.path.isfile(args.ckpt):
+            model.load_state_dict(torch.load(args.ckpt, map_location=device))
+            log_and_print(f"run.py Loaded checkpoint from {args.ckpt}")
+            
         model, loss_hist, acc_hist = train(dataloaders, model, loss_func, opt, lr_scheduler, device, optim_model_dir, n_epochs)
         best_val = max(acc_hist['val'])
         best_ep = acc_hist['val'].index(best_val) + 1
@@ -183,7 +192,7 @@ def main(args):
 
     elif mode == 'eval':
         # Load saved dataset splits
-        splits = np.load('./splits.npy', allow_pickle=True)
+        splits = np.load(os.path.join(output_dir, 'splits.npy'), allow_pickle=True)
         ts_split = splits.item()['test']
         ts_split = [(sample[0], int(sample[1])) for sample in ts_split]
 
@@ -196,10 +205,12 @@ def main(args):
         model.to(device)
         targets, outputs, accuracy = test(model, dataloaders['test'], device)
 
-        log_and_print(f'The overall test accuracy is {:.4f}%.'.format(100 * accuracy))
+        log_and_print(f"The overall test accuracy is {100 * accuracy:.4f}%.")
         # Optionally, generate a detailed test report or confusion matrix:
         # print(get_test_report(targets, outputs, all_cats))
         # print(get_confusion_matrix(targets, outputs, labels_dict, all_cats))
+        log_test(100 * accuracy, None)
+        finish_wandb()
 
     else:
         raise ValueError('The mode argument must be either "train" or "eval".')

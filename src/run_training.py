@@ -47,6 +47,7 @@ from video_datasets import VideoDataset, load_dataset, dataset_split
 from utils import transform_stats, compose_data_transforms, compose_dataloaders
 from models import LRCN
 from train import train
+from logger import log_and_print
 
 def args_parser():
     """
@@ -134,7 +135,7 @@ def trainer(args):
     device = torch.device('cuda:0' if torch.cuda.is_available()
                         else 'mps' if torch.backends.mps.is_available()
                         else 'cpu')
-    print(f"Using device: {device}")
+    log_and_print(f"trainer : Using device: {device}")
     # Load dataset and generate train/validation/test splits
     vid_dataset, label_dict = load_dataset(frame_dir)
     tr_split, val_split, ts_split = dataset_split(vid_dataset, tr_size, ts_size)
@@ -156,12 +157,17 @@ def trainer(args):
                  n_classes=n_classes, pretrained=pretrained, cnn_model=cnn_backbone)
     model = model.to(device)
 
+    # Resume from checkpoint if provided
+    if args.ckpt and os.path.isfile(args.ckpt):
+        model.load_state_dict(torch.load(args.ckpt, map_location=device))
+        log_and_print(f"run_training.py Loaded checkpoint from {args.ckpt}")
+
     # Define the loss function, optimizer, and learning rate scheduler
     loss_func = nn.CrossEntropyLoss(reduction='sum')
     opt = optim.Adam(model.parameters(), lr=learning_rate)
     lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, verbose=1)
-    os.makedirs("./models", exist_ok=True)
-    optim_model_dir = './models'
+    optim_model_dir = os.path.join(args.output_dir, "models")
+    os.makedirs(optim_model_dir, exist_ok=True)
 
     # Execute the main training procedure and update the model
     model, loss_hist, acc_hist = train(dataloaders, model, loss_func, opt, lr_scheduler, device, optim_model_dir, n_epochs)

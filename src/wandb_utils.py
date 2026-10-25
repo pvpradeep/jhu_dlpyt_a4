@@ -4,6 +4,7 @@ import os
 
 import wandb
 from dotenv import load_dotenv
+import pathlib
 
 
 def init_wandb(args, run_name=None):
@@ -16,7 +17,8 @@ def init_wandb(args, run_name=None):
     Returns:
         wandb.Run or None if init fails.
     """
-    load_dotenv()
+    project_root = pathlib.Path(__file__).resolve().parent.parent
+    load_dotenv(dotenv_path=project_root / ".env")
     api_key = os.getenv("WANDB_API_KEY")
 
     if not api_key:

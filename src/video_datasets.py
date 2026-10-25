@@ -21,7 +21,7 @@ from tqdm import tqdm
 import numpy as np
 import re
 from sklearn.model_selection import StratifiedShuffleSplit
-
+from logger import log_and_print
 
 class VideoDataset(Dataset):
     """
@@ -97,7 +97,7 @@ def load_dataset(frame_dir):
         sorted(d for d in os.listdir(frame_dir) if os.path.isdir(os.path.join(frame_dir, d)))
     )}
     vid_dataset = {}
-    print('Loading video dataset....')
+    log_and_print('Loading video dataset....')
     for vid_cat in tqdm(sorted(d for d in os.listdir(frame_dir) if os.path.isdir(os.path.join(frame_dir, d)))):
         vid_cat_path = os.path.join(frame_dir, vid_cat)
         for vid in os.listdir(vid_cat_path):
@@ -125,7 +125,7 @@ def dataset_split(vid_dataset, tr_ratio, ts_ratio, seed=0):
     Returns:
         tuple: (tr_dataset, val_dataset, ts_dataset)
     """
-    print('Splitting train/validation/test datasets (group-aware)....')
+    log_and_print('Splitting train/validation/test datasets (group-aware)....')
     
     np.random.seed(seed)
     
@@ -155,9 +155,9 @@ def dataset_split(vid_dataset, tr_ratio, ts_ratio, seed=0):
     val_groups = set(shuffled_groups[n_train:n_train + n_val])
     test_groups = set(shuffled_groups[n_train + n_val:])
     
-    print(f"  Train groups: {sorted(int(g) for g in train_groups)}")
-    print(f"  Val groups:   {sorted(int(g) for g in val_groups)}")
-    print(f"  Test groups:  {sorted(int(g) for g in test_groups)}")
+    log_and_print(f"  Train groups: {sorted(int(g) for g in train_groups)}")
+    log_and_print(f"  Val groups:   {sorted(int(g) for g in val_groups)}")
+    log_and_print(f"  Test groups:  {sorted(int(g) for g in test_groups)}")
     
     # Assign videos to splits based on their group
     tr_dataset = []
@@ -173,7 +173,7 @@ def dataset_split(vid_dataset, tr_ratio, ts_ratio, seed=0):
         else:
             ts_dataset.append((vid_path, label))
     
-    print(f"  Train: {len(tr_dataset)}, Val: {len(val_dataset)}, Test: {len(ts_dataset)}")
+    log_and_print(f"  Train: {len(tr_dataset)}, Val: {len(val_dataset)}, Test: {len(ts_dataset)}")
     
     return tr_dataset, val_dataset, ts_dataset
 
@@ -198,7 +198,7 @@ def dataset_split_orig(vid_dataset, tr_ratio, ts_ratio, seed=0):
     """
     vid_paths = np.array([vid_path for vid_path in vid_dataset.keys()])
     vid_labels = np.array([vid_label for vid_label in vid_dataset.values()])
-    print('Splitting train/validation/test datasets....')
+    log_and_print('Splitting train/validation/test datasets....')
 
     # Test split using StratifiedShuffleSplit
     ts_spliter = StratifiedShuffleSplit(n_splits=1, test_size=ts_ratio, random_state=seed)
