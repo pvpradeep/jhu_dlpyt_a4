@@ -97,7 +97,7 @@ class LRCN(nn.Module):
         # Final fully-connected layer to produce logits for each class.
         self.fc = nn.Linear(hidden_size, n_classes)
 
-    def forward(self, x):
+    def forward_orig(self, x):
         """
         Forward pass for the LRCN model.
         
@@ -115,30 +115,50 @@ class LRCN(nn.Module):
             Tensor: Output logits for each sample in the batch with shape (batch_size, n_classes).
         """
         bs, ts, c, h, w = x.shape  # batch_size, time_steps, channels, height, width
-        print(f"\n{'='*50}")
-        print(f"Input shape: (bs={bs}, ts={ts}, c={c}, h={h}, w={w})")
-
+        
         # Process the first frame separately to initialize the LSTM hidden and cell states.
         idx = 0
         y = self.base_model(x[:, idx])
-        print(f"CNN output shape: {y.shape}")
-        print(f"LSTM input shape: {y.unsqueeze(1).shape}")
-        print(f"LSTM expects (batch_first={self.rnn.batch_first}):")
         _, (hn, cn) = self.rnn(y.unsqueeze(1))
-        print(f"Hidden state shape: {hn.shape}")
 
         # Iterate over the remaining frames, feeding each frame's features into the LSTM.
         for idx in range(1, ts):
             y = self.base_model(x[:, idx])
             out, (hn, cn) = self.rnn(y.unsqueeze(1), (hn, cn))
-        
-        print(f"LSTM output shape: {out.shape}")
-        print(f"Final output (out[:, -1]) shape: {out[:, -1].shape}")
-        print(f"{'='*50}\n")
 
         # Apply dropout to the output of the final time step.
         out = self.dropout(out[:, -1])
-        
+
         # Pass the final output through the fully-connected layer to get class logits.
+        out = self.fc(out)
+        return out
+
+    def forward(self, x):
+        """
+            # ALL frames through CNN in one pass, ALL timesteps through LSTM in one pass
+            to eliminate the for loop and speed up the forward pass.
+            c_in = x.view(bs * ts, c, h, w)   # (4*16, 3, 224, 224) = (64, 3, 224, 224)
+            c_out = self.base_model(c_in)      # CNN forward pass × 1
+            r_in = c_out.view(bs, ts, -1)      # (4, 16, 512)
+            out, (hn, cn) = self.rnn(r_in)     # LSTM forward pass × 1
+
+            forward_orig:  CNN processes (4, 3, 224, 224)   per step = 4 images
+            forward:       CNN processes (64, 3, 224, 224)  at once  = 64 images
+
+        """
+        bs, ts, c, h, w = x.shape
+        
+        # Fold batch and sequence dimensions to process all frames through CNN in parallel
+        c_in = x.view(bs * ts, c, h, w)
+        c_out = self.base_model(c_in)  # shape: (bs * ts, num_features)
+        
+        # Reshape back to sequence format: (batch_size, time_steps, num_features)
+        r_in = c_out.view(bs, ts, -1)
+        
+        # Pass entire sequence through LSTM at once
+        out, (hn, cn) = self.rnn(r_in)
+        
+        # Take the output from the final frame timestep
+        out = self.dropout(out[:, -1, :])
         out = self.fc(out)
         return out

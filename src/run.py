@@ -32,11 +32,14 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 
 import numpy as np
 
+import logger
 from video_datasets import VideoDataset, load_dataset, dataset_split
 from utils import transform_stats, compose_data_transforms, train_val_dloaders, test_dloaders
 from models import LRCN
 from train import train
 from test import test, get_test_report, get_confusion_matrix
+from logger import setup_logger, log_and_print, log_args
+from wandb_utils import init_wandb, log_test, finish_wandb
 
 def args_parser():
     """
@@ -110,6 +113,10 @@ def main(args):
         args (argparse.Namespace): Parsed command-line arguments.
     """
     # Dataset parameters
+    setup_logger()
+    log_args(args)
+    wandb_run = init_wandb(args)
+
     frame_dir = args.frame_dir
     tr_size = args.train_size
     ts_size = args.test_size
@@ -134,7 +141,7 @@ def main(args):
     device = torch.device('cuda:0' if torch.cuda.is_available()
                     else 'mps' if torch.backends.mps.is_available()
                     else 'cpu')
-    print(f"Using device: {device}")
+    log_and_print(f"Using device: {device}")
     # Load transformation statistics and create data augmentation transforms
     h, w, mean, std = transform_stats(model_type)
     tr_transforms, val_ts_transforms = compose_data_transforms(h, w, mean, std)
@@ -169,6 +176,10 @@ def main(args):
         # Main training procedure
         model.to(device)
         model, loss_hist, acc_hist = train(dataloaders, model, loss_func, opt, lr_scheduler, device, optim_model_dir, n_epochs)
+        best_val = max(acc_hist['val'])
+        best_ep = acc_hist['val'].index(best_val) + 1
+        log_and_print(f"Training complete. Best val accuracy: {100*best_val:.2f}% at epoch {best_ep}")
+        finish_wandb(best_val_accuracy=100*best_val, best_epoch=best_ep)
 
     elif mode == 'eval':
         # Load saved dataset splits
@@ -185,7 +196,7 @@ def main(args):
         model.to(device)
         targets, outputs, accuracy = test(model, dataloaders['test'], device)
 
-        print('The overall test accuracy is {:.4f}%.'.format(100 * accuracy))
+        log_and_print(f'The overall test accuracy is {:.4f}%.'.format(100 * accuracy))
         # Optionally, generate a detailed test report or confusion matrix:
         # print(get_test_report(targets, outputs, all_cats))
         # print(get_confusion_matrix(targets, outputs, labels_dict, all_cats))

@@ -18,6 +18,8 @@ import os
 import copy
 from tqdm import tqdm
 import torch
+from logger import log_and_print
+from wandb_utils import log_epoch
 
 def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_model_wts_dir, n_epochs=30):
     """
@@ -52,7 +54,7 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
 
     for epoch in range(n_epochs):
         current_lr = get_learning_rate(optimizer)
-        print('Epoch {}/{}; Current learning rate {}'.format(epoch+1, n_epochs, current_lr))
+        log_and_print('Epoch {}/{}; Current learning rate {}'.format(epoch+1, n_epochs, current_lr))
 
         # Training phase
         model.train()
@@ -70,19 +72,19 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
             best_model_name = 'best_model_wts.pt'
             best_model_path = os.path.join(optim_model_wts_dir, best_model_name)
             torch.save(best_model_wts, best_model_path)
-            print('Best model weights are updated at epoch {}!'.format(epoch+1))
+            log_and_print('Best model weights are updated at epoch {}!'.format(epoch+1))
         loss_hist['val'].append(val_loss)
         acc_hist['val'].append(val_accuracy)
 
         # Update learning rate based on validation loss
         scheduler.step(val_loss)
         if current_lr != get_learning_rate(optimizer):
-            print('Loading best model weights!')
+            log_and_print('Loading best model weights!')
             model.load_state_dict(best_model_wts)
 
-        print("train loss: {:.6f}, val loss: {:.6f}, accuracy: {:.2f}".format(train_loss, val_loss, 100*val_accuracy))
-        print("-" * 60)
-        print()
+        log_and_print("train loss: {:.6f}, val loss: {:.6f}, accuracy: {:.2f}".format(train_loss, val_loss, 100*val_accuracy))
+        log_and_print("-" * 60)
+        log_epoch(epoch + 1, train_loss, val_loss, 100 * val_accuracy, current_lr)
 
     # Load the best model weights before returning the model
     model.load_state_dict(best_model_wts)
