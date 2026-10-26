@@ -40,6 +40,7 @@ class VideoDataset(Dataset):
         self.dataset = vid_dataset
         self.fpv = fr_per_vid
         self.transforms = transforms
+        self._debug_count = 0
 
     def __len__(self):
         """Return the number of video samples in the dataset."""
@@ -58,7 +59,14 @@ class VideoDataset(Dataset):
                    with T being the number of frames (up to fr_per_vid) and label is an integer.
         """
         # Get all JPEG frame paths from the video directory and select up to fr_per_vid frames
-        fr_paths = glob.glob(self.dataset[idx][0] + '/*.jpg')
+        # Ensure the frame paths are sorted numerically to maintain temporal order
+        fr_paths = sorted(glob.glob(self.dataset[idx][0] + '/*.jpg'), 
+                        key=lambda x: int(re.search(r'\d+', os.path.basename(x)).group()))
+        if self._debug_count < 3:
+            frame_names = [os.path.basename(p) for p in fr_paths]
+            print(f"[DEBUG] __getitem__ idx={idx} | {os.path.basename(self.dataset[idx][0])} | frames: {frame_names}")
+            self._debug_count += 1
+
         fr_paths = fr_paths[:self.fpv]
         
         # Open images using PIL
