@@ -9,6 +9,7 @@ using stratified sampling, and custom collate functions for handling variable-le
 """
 
 import torch
+import random
 from torch.utils.data import Dataset
 from torchvision import transforms as transforms
 from torch.nn.utils.rnn import pad_sequence
@@ -22,7 +23,6 @@ import numpy as np
 import re
 from sklearn.model_selection import StratifiedShuffleSplit
 from logger import log_and_print
-import random
 
 class VideoDataset(Dataset):
     """
@@ -67,16 +67,11 @@ class VideoDataset(Dataset):
         # Get the label associated with the video
         fr_label = self.dataset[idx][1]
         
-        # Apply transforms to each frame if provided, else keep original images
-        # fr_imgs_trans = [self.transforms(fr_img) for fr_img in fr_imgs] if self.transforms else fr_imgs
-        # Apply transforms temporally consistently
+        # Apply transforms temporally consistently — same random crop/flip for all frames
         if self.transforms:
-            # Generate one random seed for the entire video clip
             seed = random.randint(0, 2**32 - 1)
             fr_imgs_trans = []
-            
             for fr_img in fr_imgs:
-                # Force the transform to make the exact same random choices for every frame
                 random.seed(seed)
                 torch.manual_seed(seed)
                 fr_imgs_trans.append(self.transforms(fr_img))

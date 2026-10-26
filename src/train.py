@@ -48,13 +48,12 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
     """
     loss_hist = {'train': [], 'val': []}
     acc_hist = {'train': [], 'val': []}
-    # should be greater than ReduceLROnPlateau patience = 5
-    early_stopping_patience = 10  # Number of epochs to wait for improvement before stopping
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_acc = 0.0
     best_val_loss = float('inf')
-    patience_counter = 0  # Track consecutive epochs without improvement
+    patience = 10
+    epochs_no_improve = 0
 
     for epoch in range(n_epochs):
         current_lr = get_learning_rate(optimizer)
@@ -71,26 +70,20 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
         with torch.no_grad():
             val_loss, val_accuracy = get_epoch_loss(model, criterion, dataloaders['val'], device)
         
-        loss_hist['val'].append(val_loss)
-        acc_hist['val'].append(val_accuracy)
-
-        # Checkpoint update & Early Stopping counter
+        if val_accuracy > best_val_acc:
+            best_val_acc = val_accuracy
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            best_val_acc = val_accuracy
+            epochs_no_improve = 0
             best_model_wts = copy.deepcopy(model.state_dict())
             best_model_path = os.path.join(optim_model_wts_dir, 'best_model_wts.pt')
             torch.save(best_model_wts, best_model_path)
-            log_and_print(f'Best model weights updated at epoch {epoch+1} (val_loss: {val_loss:.4f}, val_acc: {100*val_accuracy:.2f}%)')
-            patience_counter = 0  # Reset on progress
+            log_and_print('Best model weights saved at epoch {} (val_loss={:.5f})'.format(epoch+1, val_loss))
         else:
-            patience_counter += 1
-            log_and_print(f'No val_loss improvement for {patience_counter}/{early_stopping_patience} epoch(s).')
-
-        # Early Stopping Trigger
-        if patience_counter >= early_stopping_patience:
-            log_and_print(f'Early stopping triggered! Halting training after {early_stopping_patience} epochs without progress.')
-            break
+            epochs_no_improve += 1
+        
+        loss_hist['val'].append(val_loss)
+        acc_hist['val'].append(val_accuracy)
 
         # Update learning rate based on validation loss
         scheduler.step(val_loss)
@@ -98,16 +91,17 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
             log_and_print('Loading best model weights!')
             model.load_state_dict(best_model_wts)
 
-        log_and_print(
-            f"train loss: {train_loss:.6f}, train acc: {100*train_accuracy:.2f}% | "
-            f"val loss: {val_loss:.6f}, val acc: {100*val_accuracy:.2f}%"
-        )
+        log_and_print("train loss: {:.5f}, train acc: {:.2f}%, val loss: {:.5f}, val acc: {:.2f}%".format(
+            train_loss, 100*train_accuracy, val_loss, 100*val_accuracy))
         log_and_print("-" * 60)
         log_epoch(epoch + 1, train_loss, val_loss, 100 * val_accuracy, current_lr)
 
+        if epochs_no_improve >= patience:
+            log_and_print(f"Early stopping at epoch {epoch+1} (no val_loss improvement for {patience} epochs)")
+            break
+
     # Load the best model weights before returning the model
     model.load_state_dict(best_model_wts)
-    log_and_print(f"Training finished. Best val loss: {best_val_loss:.4f} (val acc: {100*best_val_acc:.2f}%)")
     return model, loss_hist, acc_hist
 
 def get_learning_rate(optimizer):

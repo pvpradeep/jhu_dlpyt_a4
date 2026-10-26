@@ -90,15 +90,14 @@ class LRCN(nn.Module):
         self.base_model = base_cnn
 
         # Define the LSTM to process the sequence of frame features.
-        self.rnn = nn.LSTM(num_features, hidden_size, n_layers, batch_first=True,
-                           bidirectional=True)
+        self.rnn = nn.LSTM(num_features, hidden_size, n_layers, batch_first=True)
         
         # Define dropout for regularization.
         self.dropout = nn.Dropout(dropout_rate)
         
         # Final fully-connected layer to produce logits for each class.
-        self.fc = nn.Linear(hidden_size * 2, n_classes)
-    
+        self.fc = nn.Linear(hidden_size, n_classes)
+
     def freeze_backbone(self):
         """Freeze all CNN backbone parameters to prevent overfitting."""
         for param in self.base_model.parameters():
@@ -172,11 +171,7 @@ class LRCN(nn.Module):
         
         # Take the output from the final frame timestep
         # out = self.dropout(out[:, -1, :])
-
-        # Taking the mean representation across all timesteps
-        # captures video-wide context far better than relying
-        # solely on the final frame's hidden state
-        # Mean pool across all timesteps instead of last-only
+        # Mean pool across all timesteps — captures video-wide temporal context
         out = self.dropout(out.mean(dim=1))
 
         out = self.fc(out)
