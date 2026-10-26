@@ -112,7 +112,7 @@ def transform_stats(model='lrcn'):
     return h, w, mean, std
 
 
-def compose_data_transforms(height, width, mean, std):
+def compose_data_transforms_orig(height, width, mean, std):
     """
     Compose and return data transforms for training and validation/test datasets.
 
@@ -144,6 +144,38 @@ def compose_data_transforms(height, width, mean, std):
     ])
     return train_transforms, val_test_transforms
 
+
+def compose_data_transforms(height, width, mean, std):
+    """
+    Compose and return data transforms optimized for ResNet-based video action recognition.
+    """
+    # Calculate a slightly larger size for cropping (e.g., 224 -> 256)
+    scale_size = (int(height * 1.15), int(width * 1.15))
+
+    train_transforms = transforms.Compose([
+        # 1. Scale up slightly, then RandomCrop to target size (better than RandomAffine)
+        transforms.Resize(scale_size),
+        transforms.RandomCrop((height, width)),
+        
+        # 2. Horizontal flip
+        transforms.RandomHorizontalFlip(p=0.5),
+        
+        # 3. ColorJitter (Crucial for UCF50's varying lighting conditions)
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std),
+    ])
+    
+    val_test_transforms = transforms.Compose([
+        # For validation, scale up and take the exact CenterCrop
+        transforms.Resize(scale_size),
+        transforms.CenterCrop((height, width)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std),
+    ])
+    
+    return train_transforms, val_test_transforms
 
 def train_val_dloaders(train_dataset, val_dataset, batch_size, model='lrcn'):
     """

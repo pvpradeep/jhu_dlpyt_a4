@@ -87,6 +87,7 @@ def args_parser():
     parser.add_argument('-lr', '--learning_rate', type=float, default=3e-5, help='Learning rate for model training')
     parser.add_argument('-ne', '--n_epochs', type=int, default=30, help='Number of training epochs')
     parser.add_argument('-od', '--output_dir', default='./outputs', help='Directory for outputs (models, logs, splits)')
+    parser.add_argument('--finetune', action='store_true', help='Enable Stage 2: Unfreeze layer4 with differential LRs')
 
     args = parser.parse_args()
     return args
@@ -171,9 +172,9 @@ def main(args):
         dataloaders = train_val_dloaders(tr_dataset, val_dataset, batch_size, model_type)
 
         # Define the loss function, optimizer, and learning rate scheduler
-        loss_func = nn.CrossEntropyLoss(reduction='sum')
-        opt = optim.Adam(model.parameters(), lr=learning_rate)
-        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
+        #loss_func = nn.CrossEntropyLoss(reduction='sum')
+        loss_func = nn.CrossEntropyLoss(reduction='sum', label_smoothing=0.1)
+
         optim_model_dir = os.path.join(output_dir, "models")
         os.makedirs(optim_model_dir, exist_ok=True)
 
@@ -183,7 +184,24 @@ def main(args):
         if args.ckpt and os.path.isfile(args.ckpt):
             model.load_state_dict(torch.load(args.ckpt, map_location=device))
             log_and_print(f"run.py Loaded checkpoint from {args.ckpt}")
-            
+        model.freeze_backbone()
+        if args.finetune:
+            for param in model.base_model.layer4.parameters():
+                param.requires_grad = True
+
+            layer4_params = list(model.base_model.layer4.parameters())
+            head_params = list(model.rnn.parameters()) + list(model.fc.parameters())
+            opt = optim.Adam([
+                {'params': layer4_params, 'lr': learning_rate * 0.1}, 
+                {'params': head_params, 'lr': learning_rate}
+            ], weight_decay=1e-4)
+            log_and_print("Stage 2: Layer 4 unfrozen with differential LRs.")
+        else:
+            opt = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), 
+                             lr=learning_rate, weight_decay=1e-4)
+            log_and_print("Stage 1: CNN backbone completely frozen.")
+
+        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
         model, loss_hist, acc_hist = train(dataloaders, model, loss_func, opt, lr_scheduler, device, optim_model_dir, n_epochs)
         best_val = max(acc_hist['val'])
         best_ep = acc_hist['val'].index(best_val) + 1

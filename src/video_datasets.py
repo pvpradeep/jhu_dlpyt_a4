@@ -22,6 +22,7 @@ import numpy as np
 import re
 from sklearn.model_selection import StratifiedShuffleSplit
 from logger import log_and_print
+import random
 
 class VideoDataset(Dataset):
     """
@@ -67,7 +68,20 @@ class VideoDataset(Dataset):
         fr_label = self.dataset[idx][1]
         
         # Apply transforms to each frame if provided, else keep original images
-        fr_imgs_trans = [self.transforms(fr_img) for fr_img in fr_imgs] if self.transforms else fr_imgs
+        # fr_imgs_trans = [self.transforms(fr_img) for fr_img in fr_imgs] if self.transforms else fr_imgs
+        # Apply transforms temporally consistently
+        if self.transforms:
+            # Generate one random seed for the entire video clip
+            seed = random.randint(0, 2**32 - 1)
+            fr_imgs_trans = []
+            
+            for fr_img in fr_imgs:
+                # Force the transform to make the exact same random choices for every frame
+                random.seed(seed)
+                torch.manual_seed(seed)
+                fr_imgs_trans.append(self.transforms(fr_img))
+        else:
+            fr_imgs_trans = fr_imgs
 
         # Stack transformed images into a tensor if available
         if len(fr_imgs_trans) > 0:

@@ -15,6 +15,7 @@ Classes:
 
 import torch.nn as nn
 from torchvision import models
+from torchvision.models import ResNet34_Weights, ResNet50_Weights
 
 class Identity(nn.Module):
     """
@@ -70,9 +71,9 @@ class LRCN(nn.Module):
         if cnn_model == 'resnet18':
             base_cnn = models.resnet18(pretrained=pretrained)
         elif cnn_model == 'resnet34':
-            base_cnn = models.resnet34(pretrained=pretrained)
+            base_cnn = models.resnet34(weights=ResNet34_Weights.DEFAULT if pretrained else None)
         elif cnn_model == 'resnet50':
-            base_cnn = models.resnet50(pretrained=pretrained)
+            base_cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
         elif cnn_model == 'resnet101':
             base_cnn = models.resnet101(pretrained=pretrained)
         elif cnn_model == 'resnet152':
@@ -89,13 +90,24 @@ class LRCN(nn.Module):
         self.base_model = base_cnn
 
         # Define the LSTM to process the sequence of frame features.
-        self.rnn = nn.LSTM(num_features, hidden_size, n_layers, batch_first=True)
+        self.rnn = nn.LSTM(num_features, hidden_size, n_layers, batch_first=True,
+                           bidirectional=True)
         
         # Define dropout for regularization.
         self.dropout = nn.Dropout(dropout_rate)
         
         # Final fully-connected layer to produce logits for each class.
-        self.fc = nn.Linear(hidden_size, n_classes)
+        self.fc = nn.Linear(hidden_size * 2, n_classes)
+    
+    def freeze_backbone(self):
+        """Freeze all CNN backbone parameters to prevent overfitting."""
+        for param in self.base_model.parameters():
+            param.requires_grad = False
+
+    def unfreeze_backbone(self):
+        """Unfreeze CNN backbone parameters for fine-tuning."""
+        for param in self.base_model.parameters():
+            param.requires_grad = True
 
     def forward_orig(self, x):
         """
@@ -159,6 +171,13 @@ class LRCN(nn.Module):
         out, (hn, cn) = self.rnn(r_in)
         
         # Take the output from the final frame timestep
-        out = self.dropout(out[:, -1, :])
+        # out = self.dropout(out[:, -1, :])
+
+        # Taking the mean representation across all timesteps
+        # captures video-wide context far better than relying
+        # solely on the final frame's hidden state
+        # Mean pool across all timesteps instead of last-only
+        out = self.dropout(out.mean(dim=1))
+
         out = self.fc(out)
         return out
