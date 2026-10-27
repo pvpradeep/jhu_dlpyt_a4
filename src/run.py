@@ -223,19 +223,38 @@ def main(args):
         ts_split = splits.item()['test']
         ts_split = [(sample[0], int(sample[1])) for sample in ts_split]
 
+        # Extract sorted category names and construct the label mapping
+        all_cats = sorted([
+            d for d in os.listdir(args.frame_dir) 
+            if os.path.isdir(os.path.join(args.frame_dir, d)) and not d.startswith('.')
+        ])
+        labels_dict = {cat: i for i, cat in enumerate(all_cats)}
+
         # Create PyTorch Dataset and DataLoader for the test set
         ts_dataset = VideoDataset(ts_split, fr_per_vid, val_ts_transforms)
         dataloaders = test_dloaders(ts_dataset, batch_size, model_type)
 
         # Load the trained model checkpoint
-        model.load_state_dict(torch.load(args.ckpt))
+        if args.ckpt and os.path.isfile(args.ckpt):
+            model.load_state_dict(torch.load(args.ckpt, map_location=device))
         model.to(device)
-        targets, outputs, accuracy = test(model, dataloaders['test'], device)
+        targets, outputs, accuracy = test(model, dataloaders['test'], device, n_clips=5)
 
         log_and_print(f"The overall test accuracy is {100 * accuracy:.4f}%.")
         # Optionally, generate a detailed test report or confusion matrix:
         # print(get_test_report(targets, outputs, all_cats))
         # print(get_confusion_matrix(targets, outputs, labels_dict, all_cats))
+
+        # Generate detailed classification report and confusion matrix
+        print("\n" + "="*50)
+        print("CLASSIFICATION REPORT")
+        print("="*50)
+        print(get_test_report(targets, outputs, all_cats))
+
+        print("\n" + "="*50)
+        print("CONFUSION MATRIX")
+        print("="*50)
+        print(get_confusion_matrix(targets, outputs, labels_dict, all_cats))
         log_test(100 * accuracy, None)
         finish_wandb()
 

@@ -11,11 +11,12 @@ python "$PROJECT_ROOT/src/run.py" \
     --rnn_hidden_size 256 \
     --rnn_n_layers 2 \
     --n_classes 50 \
-    --learning_rate 1e-4 \
+    --learning_rate 4e-4 \
     --dropout 0.5 \
     --fr_per_vid 16 \
-    --batch_size 8 \
+    --batch_size 32 \
     --mode train \
-    --run_name "v3_stg1-frozen-contig5-r50-lstm256" \
-    --unfreeze_layer -1 \
+    --run_name "v3_stg2-l3unfrozen-contig5-r50-lstm256" \
+    --unfreeze_layer 3 \
+    --ckpt "$PROJECT_ROOT/outputs/models/v3_stg1-frozen-contig5-r50_best_model_wts.pt" \
     --n_epochs 30
