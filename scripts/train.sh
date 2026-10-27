@@ -11,10 +11,11 @@ python "$PROJECT_ROOT/src/run.py" \
     --rnn_hidden_size 256 \
     --rnn_n_layers 2 \
     --n_classes 50 \
-    --learning_rate 1e-3 \
+    --learning_rate 1e-4 \
     --dropout 0.5 \
     --fr_per_vid 32 \
     --batch_size 8 \
     --mode train \
-    --run_name "frfix-frozen-r34-lstm256x2-32frames-drop05-ls01-augv2" \
+    --ckpt "$PROJECT_ROOT/outputs/models/v2_frfixed_frozen_rs34_best_model_wts.pt" \
+    --run_name "v2_-unfrozen-l3-r34-lstm256" \
     --n_epochs 30

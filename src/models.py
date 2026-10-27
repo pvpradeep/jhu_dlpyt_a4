@@ -108,6 +108,24 @@ class LRCN(nn.Module):
         for param in self.base_model.parameters():
             param.requires_grad = True
 
+    def unfreeze_from(self, layer_name):
+        """
+        Freeze all backbone layers, then unfreeze from layer_name onward.
+        E.g., unfreeze_from('layer3') unfreezes layer3, layer4, and fc.
+        """
+        self.freeze_backbone()
+        layer_order = ['conv1', 'bn1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']
+        start_idx = layer_order.index(layer_name)
+        unfreeze_names = layer_order[start_idx:]
+        for name, param in self.base_model.named_parameters():
+            for uname in unfreeze_names:
+                if name.startswith(uname):
+                    param.requires_grad = True
+                    break
+        frozen = sum(1 for p in self.base_model.parameters() if not p.requires_grad)
+        unfrozen = sum(1 for p in self.base_model.parameters() if p.requires_grad)
+        print(f"Backbone: {frozen} params frozen, {unfrozen} params unfrozen (from {layer_name})")
+    
     def forward_orig(self, x):
         """
         Forward pass for the LRCN model.

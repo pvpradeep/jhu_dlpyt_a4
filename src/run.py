@@ -175,8 +175,15 @@ def main(args):
 
         # Define the loss function, optimizer, and learning rate scheduler
         loss_func = nn.CrossEntropyLoss(reduction='sum', label_smoothing=0.1)
-        # Freeze backbone — train only LSTM + FC head
-        model.freeze_backbone()
+        # Main training procedure
+        model.to(device)
+        # Resume from checkpoint if provided
+        if args.ckpt and os.path.isfile(args.ckpt):
+            model.load_state_dict(torch.load(args.ckpt, map_location=device))
+            log_and_print(f"run.py Loaded checkpoint from {args.ckpt}")
+
+        # Unfreeze layer3+layer4 for fine-tuning, freeze earlier layers
+        model.unfreeze_from('layer3')
         opt = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                          lr=learning_rate, weight_decay=1e-4)
 
@@ -184,13 +191,6 @@ def main(args):
         optim_model_dir = os.path.join(output_dir, "models")
         os.makedirs(optim_model_dir, exist_ok=True)
 
-        # Main training procedure
-        model.to(device)
-        # Resume from checkpoint if provided
-        if args.ckpt and os.path.isfile(args.ckpt):
-            model.load_state_dict(torch.load(args.ckpt, map_location=device))
-            log_and_print(f"run.py Loaded checkpoint from {args.ckpt}")
-            
         model, loss_hist, acc_hist = train(dataloaders, model, loss_func, opt, lr_scheduler, device, optim_model_dir, n_epochs)
         best_val = max(acc_hist['val'])
         best_ep = acc_hist['val'].index(best_val) + 1
