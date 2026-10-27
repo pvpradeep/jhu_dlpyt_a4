@@ -11,10 +11,10 @@ python "$PROJECT_ROOT/src/run.py" \
     --rnn_hidden_size 256 \
     --rnn_n_layers 2 \
     --n_classes 50 \
-    --learning_rate 3e-5 \
+    --learning_rate 1e-3 \
     --dropout 0.5 \
     --fr_per_vid 32 \
     --batch_size 8 \
     --mode train \
-    --run_name "unfrozen-r34-lstm256x2-32frames-drop05-ls01-augv2" \
-    --n_epochs 50
+    --run_name "frfix-frozen-r34-lstm256x2-32frames-drop05-ls01-augv2" \
+    --n_epochs 30

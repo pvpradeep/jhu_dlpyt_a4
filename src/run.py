@@ -176,7 +176,9 @@ def main(args):
         # Define the loss function, optimizer, and learning rate scheduler
         loss_func = nn.CrossEntropyLoss(reduction='sum', label_smoothing=0.1)
         # Freeze backbone — train only LSTM + FC head
-        opt = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+        model.freeze_backbone()
+        opt = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+                         lr=learning_rate, weight_decay=1e-4)
 
         lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
         optim_model_dir = os.path.join(output_dir, "models")
