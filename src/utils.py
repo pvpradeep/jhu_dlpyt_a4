@@ -57,6 +57,48 @@ def get_frames(vid, n_frames=1):
     v_cap.release()
     return frames, v_len
 
+def get_frames_contig(vid, n_frames=16, n_clips=5):
+    """
+    Extract multiple overlapping contiguous clips from a video.
+    Returns a list of clips, where each clip is a list of contiguous frames.
+    """
+    clips = []
+    v_cap = cv2.VideoCapture(vid)
+    if not v_cap.isOpened():
+        print("Failed to open video:", vid)
+        return clips, 0
+        
+    v_len = int(v_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if v_len <= 0:
+        print("No frames found in video:", vid)
+        v_cap.release()
+        return clips, 0
+        
+    # Determine starting frame indices for the clips
+    if v_len <= n_frames:
+        start_indices = [0]  # Video is too short, just grab from the start once
+    else:
+        start_indices = np.linspace(0, v_len - n_frames, n_clips, dtype=int)
+        
+    for start_idx in start_indices:
+        v_cap.set(cv2.CAP_PROP_POS_FRAMES, start_idx)
+        frames = []
+        for _ in range(n_frames):
+            success, frame = v_cap.read()
+            if not success:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(frame)
+            
+        # Pad by duplicating the last frame if the video was slightly too short
+        while len(frames) > 0 and len(frames) < n_frames:
+            frames.append(frames[-1])
+           
+        if len(frames) == n_frames:
+            clips.append(frames)
+           
+    v_cap.release()
+    return clips, v_len
 
 def store_frames(frames, store_path):
     """

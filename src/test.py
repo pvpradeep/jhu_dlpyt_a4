@@ -16,9 +16,9 @@ import torch
 from tqdm import tqdm
 from sklearn.metrics import classification_report, multilabel_confusion_matrix
 
-def test(model, dataloader, device):
+def test(model, dataloader, device, n_clips=5):
     """
-    Evaluate the model on the test dataset and compute overall accuracy.
+    Evaluate the model on the test dataset using temporal averaging across multiple clips.
     
     This function sets the model to evaluation mode and processes the test data
     from the provided DataLoader. It computes predictions for each batch, counts the number
@@ -38,21 +38,29 @@ def test(model, dataloader, device):
     """
     model.eval()
     with torch.no_grad():
-        total_correct_preds = 0.0
-        len_dataset = len(dataloader.dataset)
-        targets, outputs = [], []
+        all_logits, all_targets = [], []
         for x_batch, y_batch in tqdm(dataloader):
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
             output = model(x_batch)
-            pred = output.argmax(dim=1, keepdim=True)
-            correct_preds = pred.eq(y_batch.view_as(pred)).sum().item()
-            total_correct_preds += correct_preds
-            outputs.extend(pred.view(-1).detach().cpu().numpy().tolist())
-            targets.extend(y_batch.detach().cpu().numpy().tolist())
-        
-        accuracy = total_correct_preds / float(len_dataset)
+            all_logits.append(output.cpu())
+            all_targets.append(y_batch.cpu())
+
+        # Combine all batches
+        all_logits = torch.cat(all_logits, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+       
+        # Group sequentially by n_clips and average the logits
+        num_videos = len(all_logits) // n_clips
+        avg_logits = all_logits[:num_videos * n_clips].view(num_videos, n_clips, -1).mean(dim=1)
+        video_targets = all_targets[:num_videos * n_clips].view(num_videos, n_clips)[:, 0]
+       
+        # Compute final predictions from the averaged video logits
+        preds = avg_logits.argmax(dim=1)
+        accuracy = preds.eq(video_targets).sum().item() / float(num_videos)
     
-    return targets, outputs, accuracy
+    return video_targets.tolist(), preds.tolist(), accuracy
+    
+
 
 def get_test_report(target, output, target_names):
     """

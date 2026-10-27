@@ -65,6 +65,7 @@ def args_parser():
         -d/--dropout: Dropout rate for regularization (default 0.1).
         -lr/--learning_rate: Learning rate for training (default 3e-5).
         -ne/--n_epochs: Number of training epochs (default 30).
+        -ul/--unfreeze_layer: ResNet layer to unfreeze from (e.g., 3 for layer3). -1 freezes the entire backbone.
     """
     parser = argparse.ArgumentParser(description='Video Classification Training')
 
@@ -88,6 +89,7 @@ def args_parser():
     parser.add_argument('-ne', '--n_epochs', type=int, default=30, help='Number of training epochs')
     parser.add_argument('-od', '--output_dir', default='./outputs', help='Directory for outputs (models, logs, splits)')
     parser.add_argument('--run_name', type=str, default=None, help='Name for this experiment run (used in logs and W&B)')
+    parser.add_argument('-ul', '--unfreeze_layer', type=int, default=-1, help='ResNet layer to unfreeze from (e.g., 3 for layer3). -1 freezes the entire backbone.')
 
     args = parser.parse_args()
     return args
@@ -182,10 +184,28 @@ def main(args):
             model.load_state_dict(torch.load(args.ckpt, map_location=device))
             log_and_print(f"run.py Loaded checkpoint from {args.ckpt}")
 
-        # Unfreeze layer3+layer4 for fine-tuning, freeze earlier layers
-        model.unfreeze_from('layer3')
-        opt = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
-                         lr=learning_rate, weight_decay=1e-4)
+        # Dynamic freezing/unfreezing based on command line argument
+        if args.unfreeze_layer == -1:
+            model.freeze_backbone()
+            log_and_print("Stage 1: CNN backbone completely frozen.")
+        else:
+            layer_name = f'layer{args.unfreeze_layer}'
+            model.unfreeze_from(layer_name)
+            log_and_print(f"Stage 2: CNN backbone unfrozen from {layer_name}.")
+
+        # Differential learning rates for fine-tuning
+        if args.unfreeze_layer == -1:
+            opt = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), 
+                             lr=learning_rate, weight_decay=1e-4)
+        else:
+            cnn_params = [p for n, p in model.named_parameters() if p.requires_grad and 'base_model' in n]
+            head_params = [p for n, p in model.named_parameters() if p.requires_grad and 'base_model' not in n]
+
+            opt = optim.Adam([
+                {'params': cnn_params, 'lr': learning_rate * 0.1},  # 10x smaller for CNN
+                {'params': head_params, 'lr': learning_rate}        # Base LR for LSTM
+            ], weight_decay=1e-4)
+
 
         lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
         optim_model_dir = os.path.join(output_dir, "models")

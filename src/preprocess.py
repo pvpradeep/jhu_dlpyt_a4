@@ -11,10 +11,10 @@ Usage:
 import os
 import argparse
 from tqdm import tqdm
-from utils import get_frames, store_frames
+from utils import get_frames, store_frames, get_frames_contig
 
 
-def preprocess_dataset(video_dir, output_dir, n_frames=16):
+def preprocess_dataset(video_dir, output_dir, n_frames=16, n_clips=5):
     """
     Extract frames from all videos in the dataset.
 
@@ -38,36 +38,36 @@ def preprocess_dataset(video_dir, output_dir, n_frames=16):
     for category in tqdm(categories, desc="Categories"):
         category_path = os.path.join(video_dir, category)
         output_category_path = os.path.join(output_dir, category)
-        
+
         # Create output category directory
         os.makedirs(output_category_path, exist_ok=True)
-        
+
         # Get all video files
         videos = [f for f in os.listdir(category_path) if f.endswith('.avi')]
-        
+
         for video_file in videos:
             video_path = os.path.join(category_path, video_file)
-            
+
             # Create output directory for this video's frames
             video_name = os.path.splitext(video_file)[0]  # Remove .avi extension
-            frames_output_path = os.path.join(output_category_path, video_name)
-            
-            # Skip if already processed
-            if os.path.exists(frames_output_path) and len(os.listdir(frames_output_path)) > 0:
-                total_videos += 1
-                continue
-            
-            os.makedirs(frames_output_path, exist_ok=True)
-            
-            # Extract frames
-            frames, v_len = get_frames(video_path, n_frames=n_frames)
-            
-            if len(frames) == 0:
+            # Extract contiguous clips
+            clips, v_len = get_frames_contig(video_path, n_frames=n_frames, n_clips=n_clips)
+
+            if len(clips) == 0:
                 failed_videos.append(video_path)
                 continue
-            
-            # Save frames
-            store_frames(frames, frames_output_path)
+
+            # Save each clip into its own directory (e.g., v_BaseballPitch_g01_c01_clip0)
+            for clip_idx, clip_frames in enumerate(clips):
+                clip_name = f"{video_name}_clip{clip_idx}"
+                frames_output_path = os.path.join(output_category_path, clip_name)
+
+                if os.path.exists(frames_output_path) and len(os.listdir(frames_output_path)) > 0:
+                    continue
+
+                os.makedirs(frames_output_path, exist_ok=True)
+                store_frames(clip_frames, frames_output_path)
+
             total_videos += 1
     
     print(f"\n✅ Processed {total_videos} videos")
@@ -98,6 +98,12 @@ def main():
         default=16,
         help="Number of frames to extract per video"
     )
+    parser.add_argument(
+        "--n_clips", 
+        type=int, 
+        default=5,
+        help="Number of overlapping clips to extract per video"
+    )
     
     args = parser.parse_args()
     
@@ -110,7 +116,7 @@ def main():
     print(f"Frames per video: {args.n_frames}")
     print("-" * 50)
     
-    preprocess_dataset(args.video_dir, args.output_dir, args.n_frames)
+    preprocess_dataset(args.video_dir, args.output_dir, args.n_frames, args.n_clips)
 
 
 if __name__ == "__main__":
