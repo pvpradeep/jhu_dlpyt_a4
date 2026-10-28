@@ -1,0 +1,80 @@
+2026-10-25 16:22:58 - INFO - ============================================================
+2026-10-25 16:22:58 - INFO - Run Configuration:
+2026-10-25 16:22:58 - INFO -   batch_size: 16
+2026-10-25 16:22:58 - INFO -   ckpt: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/stg1_best_model_wts.pt
+2026-10-25 16:22:58 - INFO -   cnn_backbone: resnet50
+2026-10-25 16:22:58 - INFO -   dropout: 0.5
+2026-10-25 16:22:58 - INFO -   finetune: True
+2026-10-25 16:22:58 - INFO -   fr_per_vid: 16
+2026-10-25 16:22:58 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames
+2026-10-25 16:22:58 - INFO -   learning_rate: 0.0001
+2026-10-25 16:22:58 - INFO -   mode: train
+2026-10-25 16:22:58 - INFO -   model_type: lrcn
+2026-10-25 16:22:58 - INFO -   n_classes: 50
+2026-10-25 16:22:58 - INFO -   n_epochs: 20
+2026-10-25 16:22:58 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-25 16:22:58 - INFO -   pretrained: True
+2026-10-25 16:22:58 - INFO -   rnn_hidden_size: 512
+2026-10-25 16:22:58 - INFO -   rnn_n_layers: 1
+2026-10-25 16:22:58 - INFO -   test_size: 0.15
+2026-10-25 16:22:58 - INFO -   train_size: 0.75
+2026-10-25 16:22:58 - INFO - ============================================================
+2026-10-25 16:23:00 - INFO - Using device: mps
+2026-10-25 16:23:00 - INFO - Loading video dataset....
+2026-10-25 16:23:00 - INFO - Splitting train/validation/test datasets (group-aware)....
+2026-10-25 16:23:00 - INFO -   Train groups: [2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30]
+2026-10-25 16:23:00 - INFO -   Val groups:   [4, 8, 26]
+2026-10-25 16:23:00 - INFO -   Test groups:  [1, 13, 16, 22]
+2026-10-25 16:23:00 - INFO -   Train: 5080, Val: 557, Test: 1044
+2026-10-25 16:23:01 - INFO - run.py Loaded checkpoint from /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/stg1_best_model_wts.pt
+2026-10-25 16:23:01 - INFO - Stage 2: Layer 4 unfrozen with differential LRs.
+2026-10-25 16:23:01 - INFO - Epoch 1/20; Current learning rate 1e-05
+2026-10-25 16:31:16 - INFO - Best model weights updated at epoch 1 (val_loss: 0.7068, val_acc: 82.94%)
+2026-10-25 16:31:16 - INFO - train loss: 0.058648, train acc: 98.46% | val loss: 0.706786, val acc: 82.94%
+2026-10-25 16:31:16 - INFO - ------------------------------------------------------------
+2026-10-25 16:31:16 - INFO - Epoch 2/20; Current learning rate 1e-05
+2026-10-25 16:39:58 - INFO - No val_loss improvement for 1/10 epoch(s).
+2026-10-25 16:39:58 - INFO - train loss: 0.029298, train acc: 99.21% | val loss: 0.748949, val acc: 81.87%
+2026-10-25 16:39:58 - INFO - ------------------------------------------------------------
+2026-10-25 16:39:58 - INFO - Epoch 3/20; Current learning rate 1e-05
+2026-10-25 16:48:44 - INFO - No val_loss improvement for 2/10 epoch(s).
+2026-10-25 16:48:44 - INFO - train loss: 0.024177, train acc: 99.19% | val loss: 0.793559, val acc: 81.33%
+2026-10-25 16:48:44 - INFO - ------------------------------------------------------------
+2026-10-25 16:48:44 - INFO - Epoch 4/20; Current learning rate 1e-05
+2026-10-25 16:57:33 - INFO - No val_loss improvement for 3/10 epoch(s).
+2026-10-25 16:57:33 - INFO - train loss: 0.016898, train acc: 99.59% | val loss: 0.756687, val acc: 81.33%
+2026-10-25 16:57:33 - INFO - ------------------------------------------------------------
+2026-10-25 16:57:33 - INFO - Epoch 5/20; Current learning rate 1e-05
+2026-10-25 17:06:23 - INFO - No val_loss improvement for 4/10 epoch(s).
+2026-10-25 17:06:23 - INFO - train loss: 0.014083, train acc: 99.69% | val loss: 0.738656, val acc: 82.94%
+2026-10-25 17:06:23 - INFO - ------------------------------------------------------------
+2026-10-25 17:06:23 - INFO - Epoch 6/20; Current learning rate 1e-05
+2026-10-25 17:15:14 - INFO - No val_loss improvement for 5/10 epoch(s).
+2026-10-25 17:15:14 - INFO - train loss: 0.011492, train acc: 99.72% | val loss: 0.773347, val acc: 81.69%
+2026-10-25 17:15:14 - INFO - ------------------------------------------------------------
+2026-10-25 17:15:14 - INFO - Epoch 7/20; Current learning rate 1e-05
+2026-10-25 17:24:05 - INFO - No val_loss improvement for 6/10 epoch(s).
+2026-10-25 17:24:05 - INFO - Loading best model weights!
+2026-10-25 17:24:05 - INFO - train loss: 0.015921, train acc: 99.53% | val loss: 0.723226, val acc: 84.20%
+2026-10-25 17:24:05 - INFO - ------------------------------------------------------------
+2026-10-25 17:24:05 - INFO - Epoch 8/20; Current learning rate 5e-06
+2026-10-25 17:33:07 - INFO - Best model weights updated at epoch 8 (val_loss: 0.6881, val_acc: 81.87%)
+2026-10-25 17:33:07 - INFO - train loss: 0.030108, train acc: 99.09% | val loss: 0.688120, val acc: 81.87%
+2026-10-25 17:33:07 - INFO - ------------------------------------------------------------
+2026-10-25 17:33:07 - INFO - Epoch 9/20; Current learning rate 5e-06
+2026-10-25 17:42:07 - INFO - No val_loss improvement for 1/10 epoch(s).
+2026-10-25 17:42:07 - INFO - train loss: 0.023452, train acc: 99.47% | val loss: 0.701065, val acc: 83.30%
+2026-10-25 17:42:07 - INFO - ------------------------------------------------------------
+2026-10-25 17:42:07 - INFO - Epoch 10/20; Current learning rate 5e-06
+2026-10-25 17:51:08 - INFO - No val_loss improvement for 2/10 epoch(s).
+2026-10-25 17:51:08 - INFO - train loss: 0.019627, train acc: 99.39% | val loss: 0.711601, val acc: 82.76%
+2026-10-25 17:51:08 - INFO - ------------------------------------------------------------
+2026-10-25 17:51:08 - INFO - Epoch 11/20; Current learning rate 5e-06
+2026-10-25 18:00:10 - INFO - No val_loss improvement for 3/10 epoch(s).
+2026-10-25 18:00:10 - INFO - train loss: 0.015205, train acc: 99.59% | val loss: 0.740887, val acc: 82.76%
+2026-10-25 18:00:10 - INFO - ------------------------------------------------------------
+2026-10-25 18:00:10 - INFO - Epoch 12/20; Current learning rate 5e-06
+2026-10-25 18:09:15 - INFO - No val_loss improvement for 4/10 epoch(s).
+2026-10-25 18:09:15 - INFO - train loss: 0.014351, train acc: 99.69% | val loss: 0.750239, val acc: 82.59%
+2026-10-25 18:09:15 - INFO - ------------------------------------------------------------
+2026-10-25 18:09:15 - INFO - Epoch 13/20; Current learning rate 5e-06

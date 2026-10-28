@@ -1,0 +1,25 @@
+2026-10-27 08:45:23 - INFO - ============================================================
+2026-10-27 08:45:23 - INFO - Run Configuration:
+2026-10-27 08:45:23 - INFO -   batch_size: 32
+2026-10-27 08:45:23 - INFO -   ckpt: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v3_stg2-frozen-contig5-r50_best_model_wts.pt
+2026-10-27 08:45:23 - INFO -   cnn_backbone: resnet50
+2026-10-27 08:45:23 - INFO -   dropout: 0.5
+2026-10-27 08:45:23 - INFO -   fr_per_vid: 16
+2026-10-27 08:45:23 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames_contig_5clips
+2026-10-27 08:45:23 - INFO -   learning_rate: 3e-05
+2026-10-27 08:45:23 - INFO -   mode: eval
+2026-10-27 08:45:23 - INFO -   model_type: lrcn
+2026-10-27 08:45:23 - INFO -   n_classes: 50
+2026-10-27 08:45:23 - INFO -   n_epochs: 30
+2026-10-27 08:45:23 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-27 08:45:23 - INFO -   pretrained: True
+2026-10-27 08:45:23 - INFO -   rnn_hidden_size: 256
+2026-10-27 08:45:23 - INFO -   rnn_n_layers: 2
+2026-10-27 08:45:23 - INFO -   run_name: v3Test_stg2-l3unfrozen-contig5-r50-lstm256
+2026-10-27 08:45:23 - INFO -   test_size: 0.15
+2026-10-27 08:45:23 - INFO -   train_size: 0.75
+2026-10-27 08:45:23 - INFO -   unfreeze_layer: -1
+2026-10-27 08:45:23 - INFO - ============================================================
+2026-10-27 08:45:25 - INFO - === Run: v3Test_stg2-l3unfrozen-contig5-r50-lstm256 ===
+2026-10-27 08:45:25 - INFO - Using device: mps
+2026-10-27 08:50:41 - INFO - The overall test accuracy is 89.5594%.

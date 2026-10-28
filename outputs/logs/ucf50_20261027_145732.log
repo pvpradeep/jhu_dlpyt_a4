@@ -1,0 +1,24 @@
+2026-10-27 14:57:32 - INFO - ============================================================
+2026-10-27 14:57:32 - INFO - Run Configuration:
+2026-10-27 14:57:32 - INFO -   batch_size: 32
+2026-10-27 14:57:32 - INFO -   ckpt: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v4_stg1-l3frozen-contig5-r50-lstm512_best_model_wts.pt
+2026-10-27 14:57:32 - INFO -   cnn_backbone: resnet50
+2026-10-27 14:57:32 - INFO -   dropout: 0.5
+2026-10-27 14:57:32 - INFO -   fr_per_vid: 16
+2026-10-27 14:57:32 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames_contig_5clips
+2026-10-27 14:57:32 - INFO -   learning_rate: 3e-05
+2026-10-27 14:57:32 - INFO -   mode: eval
+2026-10-27 14:57:32 - INFO -   model_type: lrcn
+2026-10-27 14:57:32 - INFO -   n_classes: 50
+2026-10-27 14:57:32 - INFO -   n_epochs: 30
+2026-10-27 14:57:32 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-27 14:57:32 - INFO -   pretrained: True
+2026-10-27 14:57:32 - INFO -   rnn_hidden_size: 512
+2026-10-27 14:57:32 - INFO -   rnn_n_layers: 2
+2026-10-27 14:57:32 - INFO -   run_name: v4Test_stg1-l3frozen-contig5-r50-lstm512
+2026-10-27 14:57:32 - INFO -   test_size: 0.15
+2026-10-27 14:57:32 - INFO -   train_size: 0.75
+2026-10-27 14:57:32 - INFO -   unfreeze_layer: -1
+2026-10-27 14:57:32 - INFO - ============================================================
+2026-10-27 14:57:34 - INFO - === Run: v4Test_stg1-l3frozen-contig5-r50-lstm512 ===
+2026-10-27 14:57:34 - INFO - Using device: mps

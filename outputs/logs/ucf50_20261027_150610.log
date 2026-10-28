@@ -1,0 +1,40 @@
+2026-10-27 15:06:10 - INFO - ============================================================
+2026-10-27 15:06:10 - INFO - Run Configuration:
+2026-10-27 15:06:10 - INFO -   batch_size: 32
+2026-10-27 15:06:10 - INFO -   ckpt: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v4_stg1-l3frozen-contig5-r50-lstm512_best_model_wts.pt
+2026-10-27 15:06:10 - INFO -   cnn_backbone: resnet50
+2026-10-27 15:06:10 - INFO -   dropout: 0.5
+2026-10-27 15:06:10 - INFO -   fr_per_vid: 16
+2026-10-27 15:06:10 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames_contig_5clips
+2026-10-27 15:06:10 - INFO -   learning_rate: 0.0004
+2026-10-27 15:06:10 - INFO -   mode: train
+2026-10-27 15:06:10 - INFO -   model_type: lrcn
+2026-10-27 15:06:10 - INFO -   n_classes: 50
+2026-10-27 15:06:10 - INFO -   n_epochs: 30
+2026-10-27 15:06:10 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-27 15:06:10 - INFO -   pretrained: True
+2026-10-27 15:06:10 - INFO -   rnn_hidden_size: 512
+2026-10-27 15:06:10 - INFO -   rnn_n_layers: 2
+2026-10-27 15:06:10 - INFO -   run_name: v4_stg2-l3unfrozen-contig5-r50-lstm512
+2026-10-27 15:06:10 - INFO -   test_size: 0.15
+2026-10-27 15:06:10 - INFO -   train_size: 0.75
+2026-10-27 15:06:10 - INFO -   unfreeze_layer: 3
+2026-10-27 15:06:10 - INFO - ============================================================
+2026-10-27 15:06:12 - INFO - === Run: v4_stg2-l3unfrozen-contig5-r50-lstm512 ===
+2026-10-27 15:06:12 - INFO - Using device: mps
+2026-10-27 15:06:12 - INFO - Loading video dataset....
+2026-10-27 15:06:13 - INFO - Splitting train/validation/test datasets (group-aware)....
+2026-10-27 15:06:13 - INFO -   Train groups: [2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30]
+2026-10-27 15:06:13 - INFO -   Val groups:   [4, 8, 26]
+2026-10-27 15:06:13 - INFO -   Test groups:  [1, 13, 16, 22]
+2026-10-27 15:06:13 - INFO -   Train: 25400, Val: 2785, Test: 5220
+2026-10-27 15:06:13 - INFO - run.py Loaded checkpoint from /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v4_stg1-l3frozen-contig5-r50-lstm512_best_model_wts.pt
+2026-10-27 15:06:13 - INFO - Stage 2: CNN backbone unfrozen from layer3.
+2026-10-27 15:06:13 - INFO - Epoch 1/30; Current learning rate 4e-05
+2026-10-27 16:02:07 - INFO - Best model weights saved at epoch 1 (val_loss=1.48208)
+2026-10-27 16:02:07 - INFO - train loss: 0.76533, train acc: 98.53%, val loss: 1.48208, val acc: 76.80%
+2026-10-27 16:02:07 - INFO - ------------------------------------------------------------
+2026-10-27 16:02:07 - INFO - Epoch 2/30; Current learning rate 4e-05
+2026-10-27 17:20:00 - INFO - train loss: 0.73870, train acc: 99.38%, val loss: 1.53758, val acc: 76.77%
+2026-10-27 17:20:00 - INFO - ------------------------------------------------------------
+2026-10-27 17:20:00 - INFO - Epoch 3/30; Current learning rate 4e-05

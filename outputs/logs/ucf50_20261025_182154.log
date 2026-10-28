@@ -1,0 +1,23 @@
+2026-10-25 18:21:54 - INFO - ============================================================
+2026-10-25 18:21:54 - INFO - Run Configuration:
+2026-10-25 18:21:54 - INFO -   batch_size: 16
+2026-10-25 18:21:54 - INFO -   ckpt: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/best_model_wts.pt
+2026-10-25 18:21:54 - INFO -   cnn_backbone: resnet50
+2026-10-25 18:21:54 - INFO -   dropout: 0.5
+2026-10-25 18:21:54 - INFO -   finetune: False
+2026-10-25 18:21:54 - INFO -   fr_per_vid: 16
+2026-10-25 18:21:54 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames
+2026-10-25 18:21:54 - INFO -   learning_rate: 3e-05
+2026-10-25 18:21:54 - INFO -   mode: eval
+2026-10-25 18:21:54 - INFO -   model_type: lrcn
+2026-10-25 18:21:54 - INFO -   n_classes: 50
+2026-10-25 18:21:54 - INFO -   n_epochs: 30
+2026-10-25 18:21:54 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-25 18:21:54 - INFO -   pretrained: True
+2026-10-25 18:21:54 - INFO -   rnn_hidden_size: 512
+2026-10-25 18:21:54 - INFO -   rnn_n_layers: 1
+2026-10-25 18:21:54 - INFO -   test_size: 0.15
+2026-10-25 18:21:54 - INFO -   train_size: 0.75
+2026-10-25 18:21:54 - INFO - ============================================================
+2026-10-25 18:21:56 - INFO - Using device: mps
+2026-10-25 18:23:00 - INFO - The overall test accuracy is 76.1494%.

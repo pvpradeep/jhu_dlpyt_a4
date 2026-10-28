@@ -1,0 +1,30 @@
+2026-10-28 10:29:06 - INFO - ============================================================
+2026-10-28 10:29:06 - INFO - Run Configuration:
+2026-10-28 10:29:06 - INFO -   alpha: 0.5
+2026-10-28 10:29:06 - INFO -   batch_size: 32
+2026-10-28 10:29:06 - INFO -   ckpt: None
+2026-10-28 10:29:06 - INFO -   ckpt_flow: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v3_flow_stg2-l3unfrozen-contig5-r50-lstm256_best_model_wts.pt
+2026-10-28 10:29:06 - INFO -   ckpt_rgb: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v3_stg2-frozen-contig5-r50_best_model_wts.pt
+2026-10-28 10:29:06 - INFO -   cnn_backbone: resnet50
+2026-10-28 10:29:06 - INFO -   dropout: 0.5
+2026-10-28 10:29:06 - INFO -   flow_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_flow_contig_5clips
+2026-10-28 10:29:06 - INFO -   fr_per_vid: 16
+2026-10-28 10:29:06 - INFO -   frame_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/data/UCF50_frames_contig_5clips
+2026-10-28 10:29:06 - INFO -   learning_rate: 3e-05
+2026-10-28 10:29:06 - INFO -   mode: eval_dual
+2026-10-28 10:29:06 - INFO -   model_type: lrcn
+2026-10-28 10:29:06 - INFO -   n_classes: 50
+2026-10-28 10:29:06 - INFO -   n_epochs: 30
+2026-10-28 10:29:06 - INFO -   output_dir: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs
+2026-10-28 10:29:06 - INFO -   pretrained: True
+2026-10-28 10:29:06 - INFO -   rnn_hidden_size: 256
+2026-10-28 10:29:06 - INFO -   rnn_n_layers: 2
+2026-10-28 10:29:06 - INFO -   run_name: v3_dual_stream_eval_ep4
+2026-10-28 10:29:06 - INFO -   test_size: 0.15
+2026-10-28 10:29:06 - INFO -   train_size: 0.75
+2026-10-28 10:29:06 - INFO -   unfreeze_layer: -1
+2026-10-28 10:29:06 - INFO - ============================================================
+2026-10-28 10:29:07 - INFO - === Run: v3_dual_stream_eval_ep4 ===
+2026-10-28 10:29:07 - INFO - Using device: mps
+2026-10-28 10:29:08 - INFO - Loaded RGB checkpoint: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v3_stg2-frozen-contig5-r50_best_model_wts.pt
+2026-10-28 10:29:08 - INFO - Loaded Flow checkpoint: /Users/prads/Desktop/MsAI/jhu_git/dl_w_pyTorch/a4_ucf50actrec/outputs/models/v3_flow_stg2-l3unfrozen-contig5-r50-lstm256_best_model_wts.pt

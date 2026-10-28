@@ -1,0 +1,170 @@
+
+
+
+======================================================================
+RUN 1: glob.glob() returns UNSORTED frame paths 
+with fr_paths = sorted(glob.glob(self.dataset[idx][0] + '/*.jpg'))
+======================================================================
+
+Video: BaseballPitch/v_BaseballPitch_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: Basketball/v_Basketball_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: BenchPress/v_BenchPress_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+======================================================================
+CONCLUSION: If any 'glob order == sorted order? False' above,
+the LSTM was receiving temporally scrambled frames.
+======================================================================
+
+
+Even with fix: Still wrong, this is lexicographical sorting, not numerical sorting. The correct order should be frame0.jpg, frame1.jpg, frame2.jpg, ..., frame32.jpg. The glob.glob() function does not guarantee any specific order of the files it returns, which is why we need to sort the list of file paths to ensure they are in the correct temporal order for processing by the LSTM model.
+
+
+======================================================================
+Run 2 with 
+fr_paths = sorted(glob.glob(self.dataset[idx][0] + '/*.jpg'),
+                  key=lambda x: int(os.path.basename(x).replace('frame', '').replace('.jpg', '')))
+       
+======================================================================
+
+======================================================================
+CHECKING: glob.glob() returns UNSORTED frame paths
+======================================================================
+
+Video: BaseballPitch/v_BaseballPitch_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: Basketball/v_Basketball_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: BenchPress/v_BenchPress_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+======================================================================
+CONCLUSION: If any 'glob order == sorted order? False' above,
+the LSTM was receiving temporally scrambled frames.
+======================================================================
+
+
+run 3 with
+   fr_paths = sorted(glob.glob(self.dataset[idx][0] + '/*.jpg'), 
+                     key=lambda x: int(re.search(r'\d+', os.path.basename(x)).group()))
+ ======================================================================
+CHECKING: glob.glob() returns UNSORTED frame paths
+======================================================================
+
+Video: BaseballPitch/v_BaseballPitch_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: Basketball/v_Basketball_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+Video: BenchPress/v_BenchPress_g01_c01
+  Total frames: 33
+  glob order == sorted order? False
+  First 8 (glob):   ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  First 8 (sorted): ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  *** 31/33 frames OUT OF ORDER ***
+
+======================================================================
+CONCLUSION: If any 'glob order == sorted order? False' above,
+the LSTM was receiving temporally scrambled frames.
+======================================================================
+
+
+
+NOTE: these earlier runs were testing the test code and not the VideoDataset class itself. The VideoDataset class was already using the correct sorting method with the regex to extract the frame numbers and sort them numerically. The test code was not correctly reflecting that, which is why it showed that the frames were out of order. The VideoDataset class should be fine as long as it uses the correct sorting method as shown in the final run.
+
+Run 4: Testing the VideoDataset class itself with the correct sorting method:
+======================================================================
+======================================================================
+BUG CONFIRMATION: Frame ordering in VideoDataset
+======================================================================
+
+Video: BaseballPitch/v_BaseballPitch_g01_c01
+  Total frames: 33
+  [BUG #8] glob unsorted:     32/33 frames WRONG
+    First 8: ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  [BUG #9] sorted() string:   31/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  [FIXED]  sorted() numeric:  0/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame2.jpg', 'frame3.jpg', 'frame4.jpg', 'frame5.jpg', 'frame6.jpg', 'frame7.jpg']
+
+Video: Basketball/v_Basketball_g01_c01
+  Total frames: 33
+  [BUG #8] glob unsorted:     32/33 frames WRONG
+    First 8: ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  [BUG #9] sorted() string:   31/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  [FIXED]  sorted() numeric:  0/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame2.jpg', 'frame3.jpg', 'frame4.jpg', 'frame5.jpg', 'frame6.jpg', 'frame7.jpg']
+
+Video: BenchPress/v_BenchPress_g01_c01
+  Total frames: 33
+  [BUG #8] glob unsorted:     32/33 frames WRONG
+    First 8: ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  [BUG #9] sorted() string:   31/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  [FIXED]  sorted() numeric:  0/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame2.jpg', 'frame3.jpg', 'frame4.jpg', 'frame5.jpg', 'frame6.jpg', 'frame7.jpg']
+
+Video: Biking/v_Biking_g01_c01
+  Total frames: 33
+  [BUG #8] glob unsorted:     32/33 frames WRONG
+    First 8: ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  [BUG #9] sorted() string:   31/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  [FIXED]  sorted() numeric:  0/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame2.jpg', 'frame3.jpg', 'frame4.jpg', 'frame5.jpg', 'frame6.jpg', 'frame7.jpg']
+
+Video: Billiards/v_Billards_g01_c01
+  Total frames: 33
+  [BUG #8] glob unsorted:     32/33 frames WRONG
+    First 8: ['frame19.jpg', 'frame25.jpg', 'frame31.jpg', 'frame30.jpg', 'frame24.jpg', 'frame18.jpg', 'frame32.jpg', 'frame26.jpg']
+  [BUG #9] sorted() string:   31/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame10.jpg', 'frame11.jpg', 'frame12.jpg', 'frame13.jpg', 'frame14.jpg', 'frame15.jpg']
+  [FIXED]  sorted() numeric:  0/33 frames WRONG
+    First 8: ['frame0.jpg', 'frame1.jpg', 'frame2.jpg', 'frame3.jpg', 'frame4.jpg', 'frame5.jpg', 'frame6.jpg', 'frame7.jpg']
+
+======================================================================
+SUMMARY
+  Bug #8: glob.glob() returns arbitrary OS-dependent order
+  Bug #9: sorted() uses lexicographic order (frame10 < frame2)
+  Fix:    sorted() with numeric key via regex extraction
+======================================================================
