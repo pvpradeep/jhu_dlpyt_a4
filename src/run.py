@@ -207,7 +207,7 @@ def main(args):
             ], weight_decay=1e-4)
 
 
-        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
+        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=3)
         optim_model_dir = os.path.join(output_dir, "models")
         os.makedirs(optim_model_dir, exist_ok=True)
 
