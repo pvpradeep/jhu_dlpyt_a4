@@ -22,6 +22,7 @@ the following:
 The module also includes a helper function for parsing command-line arguments.
 """
 
+from email import parser
 import os
 import argparse
 
@@ -37,7 +38,7 @@ from video_datasets import VideoDataset, load_dataset, dataset_split
 from utils import transform_stats, compose_data_transforms, train_val_dloaders, test_dloaders
 from models import LRCN
 from train import train
-from test import test, get_test_report, get_confusion_matrix
+from test import test, get_test_report, get_confusion_matrix, test_dual_stream, get_test_report_logits, get_confusion_matrix_logits
 from logger import setup_logger, log_and_print, log_args
 from wandb_utils import init_wandb, log_test, finish_wandb
 
@@ -90,6 +91,10 @@ def args_parser():
     parser.add_argument('-od', '--output_dir', default='./outputs', help='Directory for outputs (models, logs, splits)')
     parser.add_argument('--run_name', type=str, default=None, help='Name for this experiment run (used in logs and W&B)')
     parser.add_argument('-ul', '--unfreeze_layer', type=int, default=-1, help='ResNet layer to unfreeze from (e.g., 3 for layer3). -1 freezes the entire backbone.')
+    parser.add_argument('--ckpt_rgb', type=str, default=None, help='Path to trained RGB stream checkpoint')
+    parser.add_argument('--ckpt_flow', type=str, default=None, help='Path to trained Optical Flow stream checkpoint')
+    parser.add_argument('--flow_dir', type=str, default=None, help='Directory containing optical flow frames')
+    parser.add_argument('--alpha', type=float, default=0.5, help='Fusion weight for RGB stream (0.5 for equal weighting)')
 
     args = parser.parse_args()
     return args
@@ -207,7 +212,7 @@ def main(args):
             ], weight_decay=1e-4)
 
 
-        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=3)
+        lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5)
         optim_model_dir = os.path.join(output_dir, "models")
         os.makedirs(optim_model_dir, exist_ok=True)
 
@@ -255,6 +260,85 @@ def main(args):
         print("CONFUSION MATRIX")
         print("="*50)
         print(get_confusion_matrix(targets, outputs, labels_dict, all_cats))
+        log_test(100 * accuracy, None)
+        finish_wandb()
+
+    elif mode == 'eval_dual':
+        # Load saved dataset splits
+        splits = np.load(os.path.join(output_dir, 'splits.npy'), allow_pickle=True)
+        ts_split = splits.item()['test']
+
+        # Dynamically define RGB and Flow root directories from args
+        rgb_dir = args.frame_dir
+        flow_dir = getattr(args, 'flow_dir', None) or args.frame_dir.replace('frames', 'flow')
+
+        # Ensure RGB split points to rgb_dir (converts flow_dir if splits.npy came from flow training)
+        ts_split_rgb = [
+            (sample[0].replace(flow_dir, rgb_dir), int(sample[1]))
+            for sample in ts_split
+        ]
+
+        # Ensure Flow split points to flow_dir (converts rgb_dir if splits.npy came from RGB training)
+        ts_split_flow = [
+            (sample[0].replace(rgb_dir, flow_dir), int(sample[1]))
+            for sample in ts_split
+        ]
+
+        print(f"Test split contains {len(ts_split_rgb)} RGB samples and {len(ts_split_flow)} Flow samples.")
+        print(f"RGB directory:  {rgb_dir}")
+        print(f"Flow directory: {flow_dir}")
+
+        all_cats = sorted([
+            d for d in os.listdir(args.frame_dir) 
+            if os.path.isdir(os.path.join(args.frame_dir, d)) and not d.startswith('.')
+        ])
+        labels_dict = {cat: i for i, cat in enumerate(all_cats)}
+
+        # Create separate Datasets and DataLoaders
+        ts_dataset_rgb = VideoDataset(ts_split_rgb, fr_per_vid, val_ts_transforms)
+        ts_dataset_flow = VideoDataset(ts_split_flow, fr_per_vid, val_ts_transforms)
+
+        dl_rgb = test_dloaders(ts_dataset_rgb, batch_size, model_type)['test']
+        dl_flow = test_dloaders(ts_dataset_flow, batch_size, model_type)['test']
+
+        # Instantiate separate model streams
+        model_rgb = LRCN(hidden_size=rnn_hidden_size, n_layers=rnn_n_layers, dropout_rate=dropout,
+                         n_classes=n_classes, pretrained=pretrained, cnn_model=cnn_backbone).to(device)
+        model_flow = LRCN(hidden_size=rnn_hidden_size, n_layers=rnn_n_layers, dropout_rate=dropout,
+                          n_classes=n_classes, pretrained=pretrained, cnn_model=cnn_backbone).to(device)
+
+        # Load RGB and Flow checkpoints
+        ckpt_rgb = getattr(args, 'ckpt_rgb', args.ckpt)
+        ckpt_flow = getattr(args, 'ckpt_flow', None)
+
+        if ckpt_rgb and os.path.isfile(ckpt_rgb):
+            model_rgb.load_state_dict(torch.load(ckpt_rgb, map_location=device))
+            log_and_print(f"Loaded RGB checkpoint: {ckpt_rgb}")
+        else:
+            raise FileNotFoundError(f"RGB Checkpoint missing: {ckpt_rgb}")
+
+        if ckpt_flow and os.path.isfile(ckpt_flow):
+            model_flow.load_state_dict(torch.load(ckpt_flow, map_location=device))
+            log_and_print(f"Loaded Flow checkpoint: {ckpt_flow}")
+        else:
+            raise FileNotFoundError(f"Flow Checkpoint missing: {ckpt_flow}")
+
+        # Execute Dual-Stream Late Fusion Test with clean alpha sweep
+        targets, outputs, accuracy, best_alpha = test_dual_stream(
+            model_rgb, model_flow, dl_rgb, dl_flow, device, n_clips=5, alpha_step=0.05
+        )
+
+        log_and_print(f"Final Dual-Stream Test Accuracy (alpha={best_alpha:.2f}): {100 * accuracy:.4f}%")
+
+        print("\n" + "="*50)
+        print("DUAL-STREAM CLASSIFICATION REPORT")
+        print("="*50)
+        print(get_test_report_logits(targets, outputs, all_cats))
+
+        print("\n" + "="*50)
+        print("DUAL-STREAM CONFUSION MATRIX")
+        print("="*50)
+        print(get_confusion_matrix_logits(targets, outputs, labels_dict, all_cats))
         log_test(100 * accuracy, None)
         finish_wandb()
 

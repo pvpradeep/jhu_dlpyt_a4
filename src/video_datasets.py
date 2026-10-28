@@ -13,7 +13,7 @@ import random
 from torch.utils.data import Dataset
 from torchvision import transforms as transforms
 from torch.nn.utils.rnn import pad_sequence
-
+from pathlib import Path
 from PIL import Image
 
 import os
@@ -62,9 +62,12 @@ class VideoDataset(Dataset):
         # Ensure the frame paths are sorted numerically to maintain temporal order
         fr_paths = sorted(glob.glob(self.dataset[idx][0] + '/*.jpg'), 
                         key=lambda x: int(re.search(r'\d+', os.path.basename(x)).group()))
-        if self._debug_count < 3:
+        if self._debug_count < 1:
             frame_names = [os.path.basename(p) for p in fr_paths]
-            print(f"[DEBUG] __getitem__ idx={idx} | {os.path.basename(self.dataset[idx][0])} | frames: {frame_names}")
+            clip_path = Path(self.dataset[idx][0])    
+            # Prints the root dataset dir name (e.g., "UCF50_flow_contig_5clips")
+            print(f"[DEBUG] Root Dataset Dir: {clip_path.parent.parent.name}")
+            print(f" [DEBUG] __getitem__ idx={idx} | {os.path.basename(self.dataset[idx][0])} | frames: {frame_names}")
             self._debug_count += 1
 
         fr_paths = fr_paths[:self.fpv]

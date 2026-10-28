@@ -52,7 +52,7 @@ def train(dataloaders, model, criterion, optimizer, scheduler, device, optim_mod
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_acc = 0.0
     best_val_loss = float('inf')
-    patience = 5
+    patience = 10
     epochs_no_improve = 0
 
     for epoch in range(n_epochs):
