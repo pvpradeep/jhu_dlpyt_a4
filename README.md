@@ -1,169 +1,311 @@
-# Video Classification with HMDB51
+# Two-Stream LRCN Action Recognition on UCF50
 
-This project implements a video classification pipeline using the HMDB51 dataset. It leverages a Long-term Recurrent Convolutional Network (LRCN) model that extracts spatial features from individual video frames via a ResNet backbone and learns temporal dynamics through an LSTM. The project includes scripts for preprocessing, training, and testing the model.
+[![W&B Workspace](https://img.shields.io/badge/Weights%20%26%20Biases-Experiment%20Tracking-yellow?logo=weightsandbiases)](https://wandb.ai/pvpradeep/jhu_dlpyt_a4)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c?logo=pytorch)](https://pytorch.org/)
+[![Repository](https://img.shields.io/badge/GitHub-jhu__dlpyt__a4-blue?logo=github)](https://github.com/pvpradeep/jhu_dlpyt_a4)
+
+This repository implements an end-to-end deep learning framework for action recognition on the 50-class **UCF50** dataset using a **Decoupled Two-Stream Long-term Recurrent Convolutional Network (LRCN)**. The architecture processes 3-channel spatial RGB frames and 3-channel HSV-encoded Farneback Optical Flow fields via fine-tuned ResNet50 backbones and 2-layer stacked LSTMs. Late soft-voting logit fusion at $\alpha = 0.50$ achieves **95.21% Test Accuracy**, exceeding the target baseline (>93.00%) by +2.21 percentage points.
+
+> 📊 **Experiment Auditing:** Complete training curves, loss profiles, hyperparameter sweeps, and single-stream vs. dual-stream evaluation runs are tracked on [Weights & Biases Workspace](https://wandb.ai/pkpv-jhu/ucf50-action-recognition).
 
 ---
 
 ## Table of Contents
 
-- [Dataset Preparation](#dataset-preparation)
-- [Environment Setup](#environment-setup)
-- [Preprocessing and Frame Extraction](#preprocessing-and-frame-extraction)
-- [Training the Model](#training-the-model)
-- [Testing and Evaluation](#testing-and-evaluation)
+- [System Architecture](#system-architecture)
 - [Project Structure](#project-structure)
-- [Customization and Hyperparameters](#customization-and-hyperparameters)
+- [Environment Setup](#environment-setup)
+- [Dataset Ingestion & Flow Extraction](#dataset-ingestion--flow-extraction)
+- [Training Strategy](#training-strategy)
+- [Testing & Dual-Stream Evaluation](#testing--dual-stream-evaluation)
+- [Experimental Progression & Results](#experimental-progression--results)
+- [Hyperparameters & Configuration](#hyperparameters--configuration)
 
 ---
 
-## Dataset Preparation
+## System Architecture
 
-### Step 0: Download and Unzip Dataset
+```
+                               ┌───────────────────────────┐
+                       ┌──────►│   RGB Stream (ResNet50)   │──────┐
+                       │       │ + 2-Layer LSTM (256-dim) │      │
+┌──────────────────┐   │       └───────────────────────────┘      │
+│ Input Video      ├───┤                                          ├─► [Weighted Logit Fusion] ─► 95.21% Test Acc
+│ (UCF50 Dataset)  │   │       ┌───────────────────────────┐      │   (α = 0.50 Soft-Voting)
+└──────────────────┘   └──────►│ Optical Flow Stream (HSV) │──────┘
+                               │ + 2-Layer LSTM (256-dim) │
+                               └───────────────────────────┘
 
-1. **Download Dataset:**  
-   Download the HMDB51 dataset from [Kaggle](https://www.kaggle.com/datasets/easonlll/hmdb51). This dataset contains videos of 51 different human action classes.
+```
 
-2. **Unzip and Organize:**  
-   Unzip the downloaded dataset. The expected folder structure should be as follows:
-   
-        - HMDB51
-            - Action_Class1
-            - Action_Class2
-            ... ... ... ...
-            - Action_Class51
+* **Spatial Stream (RGB):** Captures scene context, actor appearance, and object semantics from 16-frame contiguous clips.
+* **Temporal Stream (Optical Flow):** Isolates motion velocity, acceleration, and movement trajectories via Farneback 2D motion vector fields mapped to HSV color space.
+* **Two-Stage Fine-Tuning:** Stage 1 trains the 2-layer stacked LSTM head (256 hidden units) while keeping the ResNet50 backbone frozen. Stage 2 unfreezes deeper convolutional layers (`layer3+`) using a $0.1\times$ differential learning rate ($4\times 10^{-5}$).
+* **Temporal Sampling & Pooling:** Evaluates 5 contiguous 16-frame clips per video (`[5, 16, 3, 224, 224]`). Features are temporally mean-pooled across LSTM time steps (`out.mean(dim=1)`), and clip predictions are averaged per video.
+* **Late Soft-Voting Fusion:** Convex linear logit combination across spatial and temporal streams:
 
-Each subdirectory represents a different action class.
+$$\mathbf{L}_{\text{fused}} = \alpha \cdot \mathbf{L}_{\text{RGB}} + (1 - \alpha) \cdot \mathbf{L}_{\text{Flow}}$$
+
+
+
+---
+
+## Project Structure
+
+```text
+.
+├── data/
+│   ├── UCF50_frames_contig_5clips/    # Sampled RGB frame sequences
+│   └── UCF50_flow_contig_5clips/      # Extracted Farneback Optical Flow HSV frames
+├── outputs/
+│   ├── logs/                          # Console and runtime execution logs
+│   ├── models/                        # Saved model checkpoints (.pt)
+│   └── splits.npy                     # Group-aware train/val/test split indices
+├── scripts/
+│   ├── train.sh                       # Single-stream Stage 1/2 training runner
+│   └── test.sh                        # Dual-stream soft-voting evaluation runner
+└── src/
+    ├── extract_flow.py                # Dense Farneback optical flow computation
+    ├── logger.py                      # Dual console/file logging pipeline
+    ├── models.py                      # LRCN model architecture & unfreezing API
+    ├── preprocess.py                  # Video extraction and dataset restructuring
+    ├── run.py                         # Execution driver CLI and mode router
+    ├── test.py                        # Standalone & dual-stream evaluation engine
+    ├── train.py                       # Epoch loops, validation tracking & early stopping
+    ├── utils.py                       # Seed-synchronized transforms & dataloaders
+    ├── video_datasets.py              # Group-aware regex splitting & frame loading
+    └── wandb_utils.py                 # Weights & Biases experiment auditing
+
+```
 
 ---
 
 ## Environment Setup
 
-1. **Python Version:**  
-This project requires Python 3.7 or higher.
+### Prerequisites
 
-2. **Dependencies:**  
-Install the required Python packages by running:
+* Python 3.10+
+* PyTorch 2.0+ (CUDA or Apple Silicon `mps` acceleration supported)
 
-```bash
-  pip install -r requirements.txt
-
-# Key Libraries
-
-- **PyTorch**
-- **torchvision**
-- **OpenCV**
-- **scikit-learn**
-- **tqdm**
-- **numpy**
-- **Pillow**
-
-## Hardware Requirements
-
-A CUDA-enabled GPU is recommended for training. The code automatically detects GPU availability.
-
----
-
-## Preprocessing and Frame Extraction
-
-Before training, the raw video files must be converted into frame sequences. The preprocessing module includes functions for:
-
-### Uniform Frame Sampling
-
-- The `get_frames` function uses OpenCV to sample a fixed number of frames per video.
-
-### Saving Frames to Disk
-
-- The `store_frames` function writes the extracted frames as JPEG images.
-
-Integrate these functions into a preprocessing script (e.g., `preprocess.py`) to convert all videos into folders of extracted frames. The resulting folder structure should mirror the original dataset structure:
-
-
----
-
-## Training the Model
-
-### Step 1: Run Training
-
-#### Configure Training Parameters
-
-The training is managed via a bash script (e.g., `train.sh`) that calls the main training module.  
-**Important:** Update the `--frame_dir` argument in the script to point to the directory where your preprocessed frame data is stored. You can also adjust other parameters (e.g., number of frames per video, batch size, learning rate) to see how they affect the experiment.
-
-#### Run the Training Script
-
-Execute the training script from your terminal:
+### Installation
 
 ```bash
-bash train.sh
+# Clone repository
+git clone https://github.com/pvpradeep/jhu_dlpyt_a4.git
+cd ucf50-action-recognition
 
-## During Training, the Script Will:
+# Install dependencies
+pip install -r requirements.txt
 
-- **Load the frame dataset.**
-- **Split the dataset** into training, validation, and test sets using stratified sampling.
-- **Apply data augmentation** techniques (resizing, random flips, affine transformations).
-- **Create custom PyTorch Datasets and DataLoaders.**
-- **Initialize the LRCN model** using a specified ResNet backbone.
-- **Set up the loss function, optimizer, and learning rate scheduler.**
-- **Run the training loop** while tracking loss and accuracy, saving the best model weights.
+```
+
+#### Key Dependencies
+
+* `torch`, `torchvision`
+* `opencv-python`
+* `scikit-learn`
+* `wandb`
+* `numpy`, `pillow`, `tqdm`
 
 ---
 
-## Testing and Evaluation
+## Dataset Ingestion & Flow Extraction
 
-### Step 2: Run Testing
+### 1. Download Dataset
 
-- **Configure Testing Parameters:**  
-  Update the `--ckpt` argument in your testing script (e.g., `test.sh`) to point to the saved best model weights generated during training.
+Download the 50-class UCF50 dataset and organize video files into category directories:
 
-- **Run the Testing Script:**  
-  Execute the testing script from your terminal:
-  
+```text
+UCF50/
+├── BaseballPitch/
+├── Basketball/
+├── BenchPress/
+└── ... (50 categories)
+
+```
+
+### 2. Extract RGB Clips
+
+Run `preprocess.py` to sample 5 contiguous 16-frame clips per video:
+
 ```bash
-bash test.sh
-## Testing Script Overview
+python src/preprocess.py \
+  --input_dir ./data/UCF50 \
+  --output_dir ./data/UCF50_frames_contig_5clips \
+  --clips_per_video 5 \
+  --frames_per_clip 16
 
-The testing script will:
+```
 
-- **Load the dataset splits** (previously saved during training).
-- **Create a DataLoader for the test set.**
-- **Load the trained model checkpoint.**
-- **Evaluate the model** on the test data by computing overall accuracy, generating classification reports, and optionally producing confusion matrices.
+### 3. Compute Farneback Optical Flow
 
----
+Generate 3-channel HSV dense optical flow maps from RGB frame sequences:
 
-## Customization and Hyperparameters
+```bash
+python src/extract_flow.py \
+  --input_dir ./data/UCF50_frames_contig_5clips \
+  --output_dir ./data/UCF50_flow_contig_5clips
 
-You can modify several parameters to experiment with different settings:
-
-### Data Parameters
-
-- `--frame_dir`: Path to your preprocessed frames.
-- `--fr_per_vid`: Number of frames to sample per video.
-
-### Model Parameters
-
-- `--model_type`: Choose between `'lrcn'` (default) or other supported models.
-- `--cnn_backbone`: Options include `resnet18`, `resnet34`, `resnet50`, `resnet101`, or `resnet152`.
-- `--rnn_hidden_size` and `--rnn_n_layers`: Configure the LSTM network.
-
-### Training Parameters
-
-- `--batch_size`, `--learning_rate`, `--n_epochs`, and `--dropout` control the training dynamics.
-- `--train_size` and `--test_size` determine dataset splits.
-
-By tweaking these parameters, you can study their impact on model performance and experiment with different network configurations.
+```
 
 ---
 
-## Summary of Steps
+## Training Strategy
 
-- **Step 0: Dataset Preparation**  
-  Download, unzip, and organize the HMDB51 dataset into subdirectories by action class.
+Training uses group-aware dataset splits (`r'_g(\d+)_'`) to isolate entire actor/recording groups into `train` (75%), `val` (10%), and `test` (15%) sets, eliminating train-test data leakage.
 
-- **Step 1: Run Training**  
-  Execute `train.sh` after configuring the `--frame_dir` and other hyperparameters to train the model.
+### Stage 1: Train Temporal LSTM Head (Frozen Backbone)
 
-- **Step 2: Run Testing**  
-  Execute `test.sh` after updating the `--ckpt` argument to point to the best model checkpoint to evaluate the model.
+Train the LSTM head on RGB frames using a frozen ResNet50 backbone:
 
-Happy Training!
+```bash
+python src/run.py \
+  --mode train \
+  --model_type lrcn \
+  --cnn_backbone resnet50 \
+  --frame_dir ./data/UCF50_frames_contig_5clips \
+  --rnn_hidden_size 256 \
+  --rnn_n_layers 2 \
+  --batch_size 32 \
+  --learning_rate 1e-3 \
+  --n_epochs 30 \
+  --run_name v3_stg1_rgb_frozen
+
+```
+
+### Stage 2: Fine-Tune Deeper Layers (`layer3+`)
+
+Unfreeze deeper backbone convolutional blocks (`layer3` and `layer4`) with a differential learning rate:
+
+```bash
+# RGB Stream Stage 2
+python src/run.py \
+  --mode train \
+  --model_type lrcn \
+  --cnn_backbone resnet50 \
+  --frame_dir ./data/UCF50_frames_contig_5clips \
+  --ckpt ./outputs/models/v3_stg1_rgb_frozen_best_model_wts.pt \
+  --unfreeze_layer layer3 \
+  --learning_rate 4e-4 \
+  --n_epochs 20 \
+  --run_name v3_stg2_rgb_unfrozen
+
+# Optical Flow Stream Stage 2
+python src/run.py \
+  --mode train \
+  --model_type lrcn \
+  --cnn_backbone resnet50 \
+  --frame_dir ./data/UCF50_flow_contig_5clips \
+  --ckpt ./outputs/models/v3_stg1_flow_frozen_best_model_wts.pt \
+  --unfreeze_layer layer3 \
+  --learning_rate 4e-5 \
+  --n_epochs 20 \
+  --run_name v3_stg2_flow_unfrozen
+
+```
+
+Alternatively, launch training passes using the provided shell script wrapper:
+
+```bash
+bash scripts/train.sh
+
+```
+
+---
+
+## Testing & Dual-Stream Evaluation
+
+Evaluate standalone streams and execute a single-pass vectorized alpha grid search ($\alpha \in [0.00, 1.00]$) to discover the optimal fusion weight:
+
+```bash
+python src/run.py \
+  --mode eval_dual \
+  --frame_dir ./data/UCF50_frames_contig_5clips \
+  --flow_dir ./data/UCF50_flow_contig_5clips \
+  --ckpt_rgb ./outputs/models/v3_stg2-frozen-contig5-r50_best_model_wts.pt \
+  --ckpt_flow ./outputs/models/v3_flow_stg2-l3unfrozen-contig5-r50-lstm256_best_model_wts.pt \
+  --run_name v3_dual_stream_eval
+
+```
+
+Or execute via shell script:
+
+```bash
+bash scripts/test.sh
+
+```
+
+### Evaluation Output Format
+
+`test_dual_stream()` performs video-level mean-pooling across clip predictions, evaluates individual streams, outputs an alpha-sweep grid search table, and logs the final classification metrics:
+
+```text
+Standalone RGB Stream Accuracy:  89.56%
+Standalone Flow Stream Accuracy: 89.66%
+
+==============================================================
+ALPHA SWEEP GRID SEARCH (RGB vs. Flow Fusion Weight)
+==============================================================
+Alpha (RGB)  | 1 - Alpha (Flow)   | Test Accuracy
+--------------------------------------------------------------
+0.00         | 1.00               |  89.66%
+...
+0.50         | 0.50               |  95.21%  <-- BEST
+...
+1.00         | 0.00               |  89.56%
+==============================================================
+Optimal Alpha Selected: 0.50 (RGB: 50%, Flow: 50%)
+Final Dual-Stream Test Accuracy (alpha=0.50): 95.2107%
+
+```
+
+---
+
+## Experimental Progression & Results
+
+### Iteration Progression Summary
+
+| Iteration | Stream | Backbone Setup | Training Strategy | Standalone Test Acc | Fused Test Acc ($\alpha=0.50$) |
+| --- | --- | --- | --- | --- | --- |
+| **Iter 1** | RGB | ResNet50 (Frozen) | Stage 1: Train 2-layer LSTM (256 hidden) | 71.20% | — |
+| **Iter 2** | RGB | ResNet50 (`layer3+` Unfrozen) | Stage 2: Fine-tune ($LR = 4\times 10^{-4}$) | **89.56%** | — |
+| **Iter 3** | Flow | ResNet50 (Frozen) | Stage 1: Train 2-layer LSTM on HSV maps | 44.50% | — |
+| **Iter 4** | Flow | ResNet50 (`layer3+` Unfrozen) | Stage 2: Fine-tune ($LR = 4\times 10^{-5}$) | **89.66%** | — |
+| **Iter 5** | **Dual-Stream** | **Both Fine-Tuned** | **Late Soft-Voting Fusion ($\alpha = 0.50$)** | — | **95.21%** |
+
+### Per-Class Orthogonality & Fusion Gain
+
+| Action Category | Support (Test Videos) | Standalone RGB Recall | Standalone Flow Recall | Dual-Stream Recall ($\alpha=0.50$) |
+| --- | --- | --- | --- | --- |
+| **`JumpingJack`** | 22 | 0.00% | 90.91% | **90.91%** |
+| **`PushUps`** | 17 | 52.94% | 100.00% | **100.00%** |
+| **`CleanAndJerk`** | 17 | 70.59% | 94.12% | **94.12%** |
+| **`PlayingPiano`** | 19 | 100.00% | 78.95% | **100.00%** |
+| **`Billiards`** | 23 | 100.00% | 82.61% | **100.00%** |
+| **`BenchPress`** | 25 | 100.00% | 100.00% | **100.00%** |
+
+---
+
+## Hyperparameters & Configuration
+
+### Dataset & Sampling Flags
+
+* `--frame_dir`: Path to RGB frame directory (`./data/UCF50_frames_contig_5clips`).
+* `--flow_dir`: Path to Optical Flow frame directory (`./data/UCF50_flow_contig_5clips`).
+* `--fr_per_vid`: Number of frames per clip sequence (default: `16`).
+* `--train_size` / `--test_size`: Split ratios (default: `0.75` train, `0.15` test, `0.10` val).
+
+### Model Architecture Flags
+
+* `--model_type`: Network type (`lrcn`).
+* `--cnn_backbone`: Spatial feature extractor (`resnet50`).
+* `--rnn_hidden_size`: Hidden dimension size of LSTM cells (default: `256`).
+* `--rnn_n_layers`: Stacked LSTM layer count (default: `2`).
+* `--unfreeze_layer`: Starting ResNet block for Stage 2 fine-tuning (`layer3` or `layer4`).
+
+### Training Optimization Flags
+
+* `--batch_size`: Batch size per step (default: `32`).
+* `--learning_rate`: Optimization step size (default: `1e-3` Stage 1, `4e-4` Stage 2 RGB, `4e-5` Stage 2 Flow).
+* `--n_epochs`: Total training iterations (default: `30`).
+* `--dropout`: Regularization rate before classification head (default: `0.5`).
