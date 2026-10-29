@@ -20,6 +20,7 @@ This repository implements an end-to-end deep learning framework for action reco
 - [Testing & Dual-Stream Evaluation](#testing--dual-stream-evaluation)
 - [Experimental Progression & Results](#experimental-progression--results)
 - [Hyperparameters & Configuration](#hyperparameters--configuration)
+- [Running Unit Tests](#running-unit-tests)
 
 ---
 
@@ -258,7 +259,6 @@ Optimal Alpha Selected: 0.50 (RGB: 50%, Flow: 50%)
 Final Dual-Stream Test Accuracy (alpha=0.50): 95.2107%
 
 ```
-
 ---
 
 ## Experimental Progression & Results
@@ -285,6 +285,36 @@ Final Dual-Stream Test Accuracy (alpha=0.50): 95.2107%
 | **`BenchPress`** | 25 | 100.00% | 100.00% | **100.00%** |
 
 ---
+## Experiment Tracking & Visualizations
+
+All model runs, hyperparameter sweeps, loss/accuracy curves, and evaluation checkpoints are logged in real-time on [Weights & Biases Workspace](https://wandb.ai/pvpradeep/jhu_dlpyt_a4).
+
+### 1. W&B Project Dashboard Overview
+
+The dashboard tracks loss convergence, accuracy trajectories, and learning rate annealing schedules across all single-stream and dual-stream training phases.
+
+![Weights & Biases Overview](docs/wanbd_overview.png)
+*Figure 1: Complete W&B project dashboard tracking loss and validation accuracy metrics across all experimental iterations.*
+
+---
+
+### 2. Optical Flow Stage 2 Fine-Tuning (`v3_flow_stg2`)
+
+Unfreezing `layer3+` of the ResNet50 backbone allowed the convolutional kernels to adapt to 3-channel HSV motion fields, driving standalone optical flow accuracy from 44.50% (frozen Stage 1) to **89.66%**.
+
+![Optical Flow Stage 2 Fine-Tuning](docs/v3_flow_stg2-l3unfrozen-contig5-r50-lstm256.png)
+*Figure 2: Training and validation loss/accuracy curves during Stage 2 Optical Flow fine-tuning (`layer3+` unfrozen, 256-dim 2-layer LSTM).*
+
+---
+
+### 3. Dual-Stream Evaluation & Soft-Voting Alpha Sweep
+
+Executing late soft-voting logit ensembling across video predictions produced a peak test accuracy of **95.21%** at equal weighting ($\alpha = 0.50$), outperforming both individual single-stream baselines (~89.6%) by **+5.65 percentage points**.
+
+![Final Dual-Stream Test Results](docs/final_test_results.png)
+*Figure 3: Final dual-stream test evaluation metrics, vectorised alpha sweep grid search ($\alpha = 0.50$), and soft-voting logit ensembling performance.*
+
+---
 
 ## Hyperparameters & Configuration
 
@@ -309,3 +339,14 @@ Final Dual-Stream Test Accuracy (alpha=0.50): 95.2107%
 * `--learning_rate`: Optimization step size (default: `1e-3` Stage 1, `4e-4` Stage 2 RGB, `4e-5` Stage 2 Flow).
 * `--n_epochs`: Total training iterations (default: `30`).
 * `--dropout`: Regularization rate before classification head (default: `0.5`).
+
+---
+## Running Unit Tests
+
+The test suite validates model tensor dimensions, temporal gradient flow across all 16 frames, group-aware dataset isolation, numeric frame path sorting, and soft-voting logit fusion math.
+
+To execute the full test suite:
+
+```bash
+python -m pytest tests/ -v
+```
